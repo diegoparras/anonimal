@@ -266,7 +266,17 @@
     // estado del motor por defecto
     fetch("/health").then(function (r) { return r.json(); }).then(function (h) {
       $("engineBadge").textContent = h.ml && h.ml.ready ? "ml" : "lite";
+      if (h.hosted) { var star = $("hostedStar"); if (star) star.hidden = false; }
     }).catch(function () {});
+
+    // Modal de privacidad (lo abre el asterisco del subtítulo en instancia hosteada).
+    var hm = $("hostedModal");
+    var openHm = function () { if (hm) hm.hidden = false; };
+    var closeHm = function () { if (hm) hm.hidden = true; };
+    if ($("hostedStar")) $("hostedStar").addEventListener("click", openHm);
+    if ($("hostedModalClose")) $("hostedModalClose").addEventListener("click", closeHm);
+    if (hm) hm.addEventListener("click", function (e) { if (e.target === hm) closeHm(); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && hm && !hm.hidden) closeHm(); });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

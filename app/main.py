@@ -212,6 +212,7 @@ def health():
     ml = get_engine("ml")
     return {
         "status": "ok",
+        "hosted": AUTH_ENABLED,   # instancia pública con login → la UI muestra la nota de privacidad
         "engine_default": ENGINE_DEFAULT,
         "mode_default": MODE_DEFAULT,
         "lite": True,

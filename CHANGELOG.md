@@ -2,6 +2,18 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
+## [0.5.0] — Login de navegador + nota de privacidad
+
+- **Login de navegador** (sesión por cookie HMAC firmada, stateless, stdlib pura)
+  para exponer Anonimal en la web sin abrirlo al mundo: `ANONIMAL_AUTH_ENABLED` +
+  `ANONIMAL_USER`/`PASSWORD`/`SESSION_SECRET` (+ `COOKIE_SECURE`, TTL). La API acepta
+  el **token de servicio** (Escriba, red interna) **O** la sesión de navegador
+  (`require_auth`); la UI exige sesión (redirige a `/login`); `/health` queda abierto
+  (healthcheck). Botón Salir + rate-limit de login por IP.
+- **Nota de privacidad** en instancia hosteada: un asterisco junto a "el dato no sale
+  de tu máquina" abre un modal aclarando que en una instancia hosteada el texto se
+  procesa en el servidor (privacidad total = auto-hostear). Aparece solo con login.
+
 ## [0.4.1] — AnonOptions: opción `showRules`
 
 - **`AnonOptions.mount(el, { showRules })`**: permite ocultar la UI de reglas del

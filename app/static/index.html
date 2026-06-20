@@ -32,7 +32,8 @@
 
   <header class="hero">
     <h1 data-i18n="tagline">Anonimiza antes de enviar.</h1>
-    <p data-i18n="subtitle">El dato nunca sale de tu máquina.</p>
+    <!-- El asterisco aparece SOLO en instancia hosteada (app.js, según /health.hosted) y abre el modal. -->
+    <p class="sub-line"><span data-i18n="subtitle">El dato nunca sale de tu máquina.</span><button id="hostedStar" class="hosted-star" type="button" hidden aria-label="Aclaración sobre privacidad" title="Aclaración">*</button></p>
   </header>
 
   <div class="tabs" role="tablist">
@@ -150,6 +151,17 @@
   </footer>
 
 </div>
+
+<!-- Modal de privacidad (solo instancia hosteada; lo abre el asterisco del subtítulo). -->
+<div class="amodal-backdrop" id="hostedModal" hidden>
+  <div class="amodal" role="dialog" aria-modal="true" aria-labelledby="hostedModalTitle">
+    <button class="amodal-x" id="hostedModalClose" type="button" aria-label="Cerrar">&times;</button>
+    <h3 id="hostedModalTitle">Sobre la privacidad acá</h3>
+    <p>Estás usando una instancia <b>hosteada</b> de Anonimal. Tu texto se envía a este servidor para procesarse y <b>no se almacena</b> — pero, a diferencia del modo local, el dato <b>sí sale de tu equipo</b> hacia este servidor.</p>
+    <p>Para privacidad total —que el dato <b>nunca</b> salga de tu máquina—, <b>auto-hosteá Anonimal</b>: corrélo en tu propia computadora o servidor. Es open source.</p>
+  </div>
+</div>
+
 <script src="/static/i18n.js"></script>
 <script src="/static/app.js"></script>
 </body>

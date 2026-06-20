@@ -6,6 +6,7 @@ pip-audit>=2.10,<3.0       # vulnerabilidades en dependencias (OSV/CVE)
 detect-secrets>=1.5,<2.0   # que no se filtren secretos al repo
 mypy>=1.11,<2.0            # chequeo estatico de tipos
 coverage>=7.6,<8.0         # cobertura de tests (umbral en pyproject.toml)
+httpx>=0.27,<1.0           # TestClient de Starlette + scripts/smoke.py
 pytest>=8.0,<9.0           # opcional: los tests son funciones test_* (compatibles)
 # Trivy (scan de imagen Docker) NO es pip: en CI via aquasecurity/trivy-action;
 # local: instalar el binario de https://aquasecurity.github.io/trivy

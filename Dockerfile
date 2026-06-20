@@ -20,7 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git curl \
 COPY requirements.txt .
 # torch CPU-only PRIMERO: OPF corre en CPU; asi evitamos ~2,5 GB de CUDA inutil.
 # Instalando OPF despues, ve torch ya satisfecho y no baja la variante CUDA.
-RUN pip install --index-url https://download.pytorch.org/whl/cpu torch \
+RUN pip install --upgrade pip setuptools wheel \
+ && pip install --index-url https://download.pytorch.org/whl/cpu torch \
  && pip install -r requirements.txt \
  && pip install "git+https://github.com/openai/privacy-filter.git" \
  && python -c "import torch; assert torch.version.cuda is None, 'se colo torch CUDA'; print('torch CPU', torch.__version__)"

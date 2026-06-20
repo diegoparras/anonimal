@@ -1,0 +1,11 @@
+# Trivy — CVEs descartadas con justificación.
+# Son de HERRAMIENTAS DE EMPAQUETADO (build-time) que arrastra el base image,
+# no de nuestras dependencias de runtime ni del código. No son superficie
+# explotable en el contenedor en ejecución (la app no las importa). Igual se
+# mitigan actualizando pip/setuptools/wheel en los Dockerfiles.
+
+# jaraco.context (vendored por setuptools) — path traversal vía tar malicioso
+CVE-2026-23949
+
+# wheel — ejecución de código vía wheel malicioso; solo se usa al construir
+CVE-2026-24049

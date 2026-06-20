@@ -16,7 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl \
  && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Actualizar la toolchain de empaquetado (pip/setuptools/wheel) baja CVEs HIGH
+# que arrastra el base image en herramientas de build.
+RUN pip install --upgrade pip setuptools wheel \
+ && pip install -r requirements.txt
 
 RUN useradd -m -u 10001 anon
 USER anon

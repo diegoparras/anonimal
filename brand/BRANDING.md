@@ -5,6 +5,10 @@ Anonimal es el guardián de privacidad del ecosistema **Escriba** (junto a
 localmente, sobre CPU: *detecta, no decide*. La marca tiene que sentirse parte
 de la misma suite —el "violín afinado"— pero con voz propia.
 
+> Fuente de verdad del sistema: el **brand board** del ecosistema en
+> `E:\Claude\ecosistema-brand` (logos + paleta canónica). Este archivo es la
+> bajada de ese sistema a Anonimal.
+
 Reglas heredadas del ecosistema (no negociables):
 
 - Tipografía **Inter Variable** (con fallback al stack del sistema).
@@ -12,23 +16,24 @@ Reglas heredadas del ecosistema (no negociables):
   script anti-FOUC en `<head>`.
 - **Sin emojis** en la UI: íconos de línea SVG.
 - **Español neutro** (sin voseo).
-- Cada app con **su acento propio**. El de Anonimal es el **fucsia magenta**.
+- Tile compartido: cuadrado redondeado (`viewBox 0 0 64 64`, `rx=15`), un color
+  plano de marca y un símbolo **blanco** centrado. Sin gradientes ni sombras.
+- Cada app con **su acento propio**. El de Anonimal es el **índigo antifaz**.
 
 ---
 
-## Acento de marca — Fucsia magenta
+## Acento de marca — Índigo antifaz
 
-Los acentos ya tomados del ecosistema son **naranja/coral** (Escriba), **verde
-esmeralda** (Fisherboy) y **azul→violeta/lavanda** (Extracta). El fucsia magenta
-cae en un hueco totalmente libre de la rueda (hue ~335°): no se confunde con
-ninguno, mantiene la energía saturada de la suite y lee perfecto con el isotipo
-en blanco.
+Color plano **`#4a4e7c`**: un índigo apagado, tono "noche / máscara". Convive con
+el resto del ecosistema (coral Escriba `#e06a3a`, teal Fisherboy `#0f8f6a`,
+violeta Extracta `#6c5cf0`) como la nota más sobria y reservada — coherente con
+"esconder, proteger".
 
 | Rol | Claro | Oscuro |
 |---|---|---|
-| Acento | `#d6336c` | `#f06595` |
-| Acento (press / hover) | `#b02a59` | `#e64980` |
-| Texto sobre acento | `#ffffff` | `#2a0f17` |
+| Acento | `#4a4e7c` | `#9aa0db` |
+| Acento (press / hover) | `#3c3f66` | `#7e84c4` |
+| Texto sobre acento | `#ffffff` | `#13141f` |
 
 ---
 
@@ -39,33 +44,33 @@ sobreescribe a claro.
 
 ```css
 :root {
-  --bg: #0f0a0c; --bg-2: #151013; --panel: #191317;
+  --bg: #0c0d14; --bg-2: #11131c; --panel: #161824;
   --card: rgba(255,255,255,0.04); --card-2: rgba(255,255,255,0.022);
   --border: rgba(255,255,255,0.10); --hairline: rgba(255,255,255,0.16);
-  --text: #f0edee; --muted: #9a8b90; --muted-2: #cdbfc4;
-  --accent: #f06595; --accent-2: #e64980;
-  --on-accent: #2a0f17;
+  --text: #edeef4; --muted: #8b8fa3; --muted-2: #c2c5d6;
+  --accent: #9aa0db; --accent-2: #7e84c4;
+  --on-accent: #13141f;
   --ok: #3fb950; --warn: #d6a01a; --err: #f85149;
   --radius: 12px; --radius-lg: 16px;
-  --ring: 0 0 0 3px rgba(240,101,149,.26);
+  --ring: 0 0 0 3px rgba(154,160,219,.26);
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
   color-scheme: dark;
 }
 [data-theme="light"] {
-  --bg: #fdf6f9; --bg-2: #ffffff; --panel: #ffffff;
-  --card: rgba(30,15,22,0.028); --card-2: rgba(30,15,22,0.016);
-  --border: rgba(30,15,22,0.10); --hairline: rgba(30,15,22,0.17);
-  --text: #1c151a; --muted: #7b6b73; --muted-2: #453840;
-  --accent: #d6336c; --accent-2: #b02a59;
+  --bg: #f7f7fb; --bg-2: #ffffff; --panel: #ffffff;
+  --card: rgba(18,20,40,0.028); --card-2: rgba(18,20,40,0.016);
+  --border: rgba(18,20,40,0.10); --hairline: rgba(18,20,40,0.17);
+  --text: #15161f; --muted: #6c6f80; --muted-2: #3a3c49;
+  --accent: #4a4e7c; --accent-2: #3c3f66;
   --on-accent: #ffffff;
   --ok: #1a7f37; --warn: #9a6700; --err: #cf222e;
-  --ring: 0 0 0 3px rgba(214,51,108,.18);
-  --shadow: 0 1px 2px rgba(30,15,22,.04), 0 12px 32px -16px rgba(30,15,22,.16);
+  --ring: 0 0 0 3px rgba(74,78,124,.20);
+  --shadow: 0 1px 2px rgba(18,20,40,.04), 0 12px 32px -16px rgba(18,20,40,.16);
   color-scheme: light;
 }
 ```
 
-`theme-color` recomendado: `#fdf6f9` (claro) / `#0f0a0c` (oscuro).
+`theme-color` recomendado: `#f7f7fb` (claro) / `#0c0d14` (oscuro).
 
 Fuente (igual que el resto del ecosistema):
 
@@ -83,23 +88,22 @@ letter-spacing: -.011em;
 ## Logo
 
 - **`logo.svg`** / **`favicon.svg`** — isotipo 64×64, tile redondeado (`rx=15`)
-  con el acento de fondo y la marca en blanco. Mismo formato que el resto del
-  ecosistema.
+  con el acento de fondo y el antifaz en blanco. Idéntico al canónico del brand
+  board del ecosistema.
 - **`logo-wordmark.svg`** — lockup horizontal (isotipo + "Anonimal"). El texto
   usa `currentColor`, así adopta `--text` del tema donde se inserte.
 - **`anonimal-lockup.svg`** / **`anonimal-lockup.png`** — lockup de presentación
   (texto negro, fondo transparente), mismo encuadre que el de Escriba. El PNG es
   720×240 @2x (1440×480) listo para componer.
 
-**Concepto:** una cabeza de animal con una **barra de censura** sobre los ojos.
-Une los dos sentidos del nombre —*anónimo* + *animal*— y dice exactamente lo que
-hace: oculta la identidad (redacción de PII). Trazo monolínea, geométrico, legible
-en tamaños chicos.
+**Concepto:** un **antifaz** (máscara con dos huecos para los ojos). Dice
+exactamente lo que hace la herramienta: *anonimiza antes de enviar* — el antifaz
+de tus datos hacia el LLM. Símbolo blanco, sólido, centrado y con aire.
 
 **Uso:** mantener el área de respeto (≈ media altura del tile) alrededor. No
 rotar, no deformar, no cambiar el color del isotipo (siempre acento + blanco).
-Sobre fondos oscuros el tile funciona igual; si se necesita la marca suelta sin
-tile, usar el fucsia `#f06595`.
+Si se necesita la marca suelta sin tile, usar el índigo `#9aa0db` (versión clara
+para fondos oscuros).
 
 ---
 

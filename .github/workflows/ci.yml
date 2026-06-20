@@ -1,0 +1,31 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  calidad-y-seguridad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Ruff (codigo redundante / muerto / buggy)
+        run: ruff check .
+      - name: Vulture (dead code)
+        run: vulture
+      - name: Bandit (auditoria de seguridad - SAST)
+        run: bandit -c pyproject.toml -r app -q
+      - name: pip-audit (vulnerabilidades en dependencias)
+        run: pip-audit -r requirements.txt
+      - name: detect-secrets (no filtrar secretos)
+        run: detect-secrets-hook --baseline .secrets.baseline $(git ls-files)
+
+      - name: Tests
+        run: pytest -q

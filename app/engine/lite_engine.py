@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Motor "lite": solo regex, sin modelo de ML. Liviano (megabytes), instalable
 en cualquier lado, offline. Menos preciso que el motor ML para nombres/direcciones
 (no los detecta), pero solido para datos estructurados (mail, telefono, tarjeta,
@@ -13,7 +12,7 @@ from .base import Span, resolve_overlaps
 PRIORITY = {
     "AR_CBU": 60,
     "AR_CUIT": 55,
-    "SECRET": 50,
+    "SECRET": 50,  # nosec B105 - peso de prioridad de deteccion, no una credencial
     "AR_DNI": 45,
     "CREDIT_CARD": 40,
     "EMAIL": 35,

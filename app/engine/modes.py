@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Los 5 modos de reemplazo + la reversibilidad.
 
 Modos:
@@ -18,7 +17,7 @@ import hashlib
 
 from .base import Span, apply_replacements
 
-GENERIC_TOKEN = "«REDACTADO»"
+GENERIC_TOKEN = "«REDACTADO»"  # nosec B105 - token de redaccion publico, no una credencial
 # Categorias numericas: se enmascaran conservando los ultimos digitos.
 _NUMERIC = {"PHONE", "CREDIT_CARD", "AR_CUIT", "AR_CBU", "AR_DNI", "IPV4"}
 MODES = ("typed", "anon", "pseudo", "mask", "hash")
@@ -53,7 +52,7 @@ def _mask(label: str, text: str) -> str:
 
 
 def _hash(label: str, text: str, salt: str) -> str:
-    h = hashlib.sha256(f"{salt}:{label}:{text}".encode("utf-8")).hexdigest()[:10]
+    h = hashlib.sha256(f"{salt}:{label}:{text}".encode()).hexdigest()[:10]
     return f"{label}_{h}"
 
 

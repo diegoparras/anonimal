@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Smoke tests de la API (FastAPI TestClient). Sin modelo ML: usa el motor lite."""
 from fastapi.testclient import TestClient
 

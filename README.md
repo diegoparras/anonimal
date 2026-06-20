@@ -89,6 +89,22 @@ Pensado para correr **local**. Si lo exponés: definí `ANONIMAL_TOKEN`
 (se exige en cada request) y poné un reverse proxy con TLS adelante. Imagen
 no-root, topes de tamaño (`ANONIMAL_MAX_CHARS`).
 
+## Calidad y seguridad
+
+El repo se audita solo, en CI y en local (`python -m tests.run_tests`):
+
+- **ruff** + **vulture** — sin código redundante ni muerto.
+- **bandit** — auditoría de seguridad estática (SAST).
+- **pip-audit** — vulnerabilidades conocidas en dependencias (OSV/CVE).
+- **detect-secrets** — que no se filtre ningún secreto al repo.
+
+```bash
+pip install -r requirements-dev.txt
+ruff check . && vulture && bandit -c pyproject.toml -r app -q && pip-audit -r requirements.txt
+```
+
+Ver `SECURITY.md` para reporte de vulnerabilidades.
+
 ## Licencia
 
 Apache-2.0. Usa [OpenAI Privacy Filter](https://github.com/openai/privacy-filter)

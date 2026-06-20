@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Anonimal — API de anonimizacion de PII, local y self-hosted.
 
 El motor corre en tu maquina: el dato nunca sale. Expone deteccion,
@@ -150,8 +149,10 @@ async def anonymize_file(file: UploadFile = File(...),
     try:
         content = raw.decode("utf-8")
     except UnicodeDecodeError:
-        raise HTTPException(status_code=415,
-                            detail="Solo archivos de texto UTF-8 (txt/md/csv/json/log/srt/html).")
+        raise HTTPException(
+            status_code=415,
+            detail="Solo archivos de texto UTF-8 (txt/md/csv/json/log/srt/html).",
+        ) from None
     _check_size(content)
     mode = _check_mode(mode)
     eng, used = _pick_engine(engine)

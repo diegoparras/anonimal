@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Detectores de PII de LATAM (foco Argentina) que el modelo generico no cubre
 bien: DNI, CUIT/CUIL, CBU. Donde es posible se valida el digito verificador para
 bajar los falsos positivos.
@@ -26,7 +25,7 @@ def _cuit_ok(d11: str) -> bool:
     if len(nums) != 11:
         return False
     weights = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2]
-    total = sum(w * n for w, n in zip(weights, nums[:10]))
+    total = sum(w * n for w, n in zip(weights, nums[:10], strict=True))
     chk = 11 - (total % 11)
     chk = 0 if chk == 11 else (9 if chk == 10 else chk)
     return chk == nums[10]

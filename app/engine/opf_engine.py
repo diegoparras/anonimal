@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Motor ML: envuelve OpenAI Privacy Filter (OPF, Apache-2.0). Preciso para
 nombres, direcciones y PII libre que el regex no puede ver. Pesado (~2.8 GB de
 checkpoint, ~5 GB en RAM) y atado a CPU.
@@ -38,12 +37,14 @@ class OpfEngine:
             try:
                 from opf import OPF  # type: ignore
                 if not os.getenv("OPF_CHECKPOINT"):
-                    from opf._common.checkpoint_download import ensure_default_checkpoint  # type: ignore
+                    from opf._common.checkpoint_download import (
+                        ensure_default_checkpoint,  # type: ignore
+                    )
                     ensure_default_checkpoint()
                 opf = OPF(device=self.device, output_mode="typed")
                 opf.redact("warm-up")           # primer forward pass
                 self._opf = opf
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 self._error = str(e)
 
     def ready(self) -> bool:

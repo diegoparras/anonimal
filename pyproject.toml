@@ -1,0 +1,43 @@
+# Configuracion de las herramientas de calidad y seguridad de Anonimal.
+# (Solo config de tooling: no cambia el empaquetado, que sigue por requirements.txt.)
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["brand", ".venv"]
+
+[tool.ruff.lint]
+# A proposito NO incluimos estilo cosmetico (E/W de largo de linea, etc.):
+# buscamos codigo redundante/muerto/buggy, no formato.
+#   F   pyflakes      -> imports/variables sin usar, redefiniciones
+#   B   bugbear       -> patrones propensos a bugs
+#   SIM flake8-simplify-> codigo redundante simplificable
+#   UP  pyupgrade     -> sintaxis obsoleta
+#   C90 mccabe        -> complejidad ciclomatica
+#   RUF reglas de ruff
+#   I   isort         -> imports desordenados/duplicados
+select = ["F", "B", "SIM", "UP", "C90", "RUF", "I"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI usa estas llamadas en los defaults de los handlers a proposito.
+extend-immutable-calls = [
+  "fastapi.Depends", "fastapi.File", "fastapi.Form", "fastapi.Header", "fastapi.Query",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
+
+[tool.bandit]
+# bandit -c pyproject.toml -r app
+exclude_dirs = ["tests", "brand", ".venv"]
+
+[tool.vulture]
+paths = ["app"]
+min_confidence = 70
+exclude = ["brand", ".venv"]
+# Los handlers de FastAPI se usan via decorador (no por nombre) -> no son dead code.
+ignore_decorators = ["@app.*"]
+ignore_names = ["lifespan", "device", "error"]

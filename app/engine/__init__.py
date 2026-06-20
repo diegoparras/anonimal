@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Registro de motores de Anonimal.
 
 - `lite`  : siempre disponible (solo regex).
@@ -10,9 +9,9 @@ pide, para no bloquear el server.
 """
 from __future__ import annotations
 
+from . import formats, modes
 from .base import Span, apply_replacements, resolve_overlaps
 from .lite_engine import LiteEngine
-from . import modes, formats
 
 _lite = LiteEngine()
 _ml = None
@@ -39,6 +38,12 @@ def lite_engine() -> LiteEngine:
 
 
 __all__ = [
-    "Span", "apply_replacements", "resolve_overlaps",
-    "LiteEngine", "get_engine", "lite_engine", "modes", "formats",
+    "LiteEngine",
+    "Span",
+    "apply_replacements",
+    "formats",
+    "get_engine",
+    "lite_engine",
+    "modes",
+    "resolve_overlaps",
 ]

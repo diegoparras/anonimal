@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Detectores de PII comunes (no atados a un pais) por regex.
 
 Precision sobre recall: preferimos no marcar de mas. Los telefonos son el caso

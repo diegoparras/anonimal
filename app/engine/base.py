@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tipos y utilidades compartidas por los motores de Anonimal.
 
 Un motor (`Engine`) solo DETECTA: recibe texto y devuelve `Span`s (etiqueta +

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Anonimizacion que PRESERVA EL FORMATO de archivos que ya son texto.
 
 Un CSV vuelve CSV con las columnas intactas y solo los datos PII enmascarados;

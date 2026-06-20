@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Tests del motor (stdlib, sin modelo ML). Corren con pytest o con el runner
 propio `python -m tests.run_tests`."""
 import csv

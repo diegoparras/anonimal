@@ -78,7 +78,7 @@ python -m tests.run_tests                            # tests del motor + API
 
 Las imágenes se publican solas: al cortar un tag `v*`, el CI
 (`.github/workflows/release.yml`) construye y sube a GHCR la **full**
-(`ghcr.io/diegoparras/anonimal:latest`) y la **lite** (`:lite`), con smoke y
+(`ghcr.io/diegoparras/anonimal-svc:latest`) y la **lite** (`:lite`), con smoke y
 Trivy como gate previo.
 
 **Despliegue completo** (Docker · Compose · EasyPanel · detrás de Escriba):

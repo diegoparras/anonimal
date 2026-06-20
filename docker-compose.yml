@@ -9,7 +9,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/diegoparras/anonimal:latest
+    image: ghcr.io/diegoparras/anonimal-svc:latest
     ports:
       - "8920:8000"
     environment:
@@ -22,7 +22,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.lite
-    image: ghcr.io/diegoparras/anonimal:lite
+    image: ghcr.io/diegoparras/anonimal-svc:lite
     ports:
       - "8921:8000"
     environment:

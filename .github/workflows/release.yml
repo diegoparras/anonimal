@@ -8,7 +8,10 @@ on:
   workflow_dispatch:
 
 env:
-  IMAGE: ghcr.io/diegoparras/anonimal
+  # El package `anonimal` lo ocupa la imagen vieja (embebido) y su ACL no deja
+  # escribir a este repo. Publicamos como `anonimal-svc` (lo crea este repo).
+  # Consolidar a `anonimal` = borrar el package viejo y renombrar acá.
+  IMAGE: ghcr.io/diegoparras/anonimal-svc
 
 jobs:
   lite:

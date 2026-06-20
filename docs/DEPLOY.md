@@ -28,10 +28,10 @@ Después: [variables de entorno](#variables-de-entorno), [recursos](#recursos) y
 
 ```bash
 # Lite (arranca al instante)
-docker run -d --name anonimal -p 8920:8000 ghcr.io/diegoparras/anonimal:lite
+docker run -d --name anonimal -p 8920:8000 ghcr.io/diegoparras/anonimal-svc:lite
 
 # Full (ML; la primera vez tarda en cargar el modelo a RAM)
-docker run -d --name anonimal -p 8920:8000 ghcr.io/diegoparras/anonimal:latest
+docker run -d --name anonimal -p 8920:8000 ghcr.io/diegoparras/anonimal-svc:latest
 ```
 
 Probar:
@@ -75,7 +75,7 @@ Requisito: la imagen tiene que estar **publicada y accesible** (ver
 las credenciales del registry en EasyPanel).
 
 1. En tu proyecto de EasyPanel, **Create → App**.
-2. **Source → Docker Image**: `ghcr.io/diegoparras/anonimal:latest` (full) o
+2. **Source → Docker Image**: `ghcr.io/diegoparras/anonimal-svc:latest` (full) o
    `:lite`.
 3. **Port**: el contenedor expone **8000**.
 4. **Environment** (ver tabla abajo). Mínimo recomendado si lo vas a exponer:
@@ -179,7 +179,12 @@ git tag v0.3.0      # el número lo decidís vos
 git push origin v0.3.0
 ```
 
-Eso buildea y empuja `ghcr.io/diegoparras/anonimal:latest` (+ `:<ver>`) y
+Eso buildea y empuja `ghcr.io/diegoparras/anonimal-svc:latest` (+ `:<ver>`) y
 `:lite` (+ `:<ver>-lite`), con smoke + Trivy como gate antes de publicar. Después,
-en GitHub, hacé **público** el package (Packages → anonimal → Package settings →
-Change visibility) si querés que EasyPanel lo baje sin credenciales.
+en GitHub, hacé **público** el package (Packages → **anonimal-svc** → Package
+settings → Change visibility) si querés que EasyPanel lo baje sin credenciales.
+
+> **Nota del nombre:** se publica como **`anonimal-svc`** porque el package
+> `anonimal` está ocupado por la imagen vieja (Anonimal embebido) y su ACL no deja
+> que este repo escriba. Para consolidar a `anonimal`: borrar el package viejo en
+> GHCR y cambiar `IMAGE` en `release.yml` a `ghcr.io/diegoparras/anonimal`.

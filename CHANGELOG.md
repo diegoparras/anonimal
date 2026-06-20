@@ -4,6 +4,25 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [No publicado]
 
+### 0.2.0 — Fase 1a: UI web
+
+Interfaz web servida por FastAPI, con el sistema de diseño del ecosistema
+(índigo antifaz `#4a4e7c`, Inter, claro/oscuro con `[data-theme]`, sin emojis,
+español neutro). i18n en es/en/fr/pt/it (zh/ja en 1b).
+
+- Pegar texto → resaltado de los datos detectados + salida anonimizada, con
+  selector de **modo** (5) y **motor**, y chips de resumen por categoría.
+- Pestaña **Re-identificar** (texto anonimizado + mapa → original).
+- **Reglas propias** (ocultar siempre / no ocultar nunca) — motor `RuledEngine`,
+  param `rules` en `/detect` y `/anonymize`, `rules_json` en `/anonymize_file`.
+- **Subir archivos** (uno o varios) preservando formato, con descarga por archivo.
+- **Copiar / Descargar / Descargar mapa / Enviar a Escriba** (handoff
+  `sessionStorage['escriba.handoff']`).
+- Backend: estáticos servidos, headers de seguridad (CSP), `/anonymize` ahora
+  devuelve `spans` para resaltar.
+- 31 tests en verde (motor + API + privacidad + reglas + calidad), cobertura 90%.
+- Pendiente 1b: i18n zh/ja y **redacción visual de PDF** (PyMuPDF, desde Escriba).
+
 ### 0.1.0 — Fase 0: motor + API (standalone)
 
 Primer corte del producto standalone, extraido del microservicio que vivia

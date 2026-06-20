@@ -13,13 +13,20 @@ localhost).
 """
 from __future__ import annotations
 
+import json
 import os
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from starlette.requests import Request
+from starlette.responses import Response
 
 from .engine import formats, get_engine, lite_engine
 from .engine.modes import MODES, Anonymizer, deanonymize
+from .engine.rules import RuledEngine
 
 MODE_DEFAULT = os.getenv("ANONIMAL_MODE", "pseudo")
 ENGINE_DEFAULT = os.getenv("ANONIMAL_ENGINE", "auto")   # auto | lite | ml
@@ -27,8 +34,29 @@ MAX_CHARS = int(os.getenv("ANONIMAL_MAX_CHARS", "500000"))
 SALT = os.getenv("ANONIMAL_SALT", "anonimal")
 TOKEN = os.getenv("ANONIMAL_TOKEN")  # si esta seteado, se exige en cada request
 
+STATIC_DIR = Path(__file__).parent / "static"
+
 app = FastAPI(title="Anonimal", version="0.1.0",
               description="Anonimizacion de PII local y self-hosted.")
+
+_CSP = (
+    "default-src 'self'; "
+    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+    "font-src 'self' https://cdn.jsdelivr.net data:; "
+    "img-src 'self' data:; "
+    "script-src 'self'; "
+    "connect-src 'self'; "
+    "base-uri 'none'; frame-ancestors 'none'"
+)
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    resp: Response = await call_next(request)
+    resp.headers.setdefault("Content-Security-Policy", _CSP)
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("Referrer-Policy", "no-referrer")
+    return resp
 
 
 def require_token(
@@ -73,17 +101,30 @@ def _check_mode(mode: str) -> str:
     return mode
 
 
+def _with_rules(engine, rules: dict | None):
+    """Envuelve el motor con las reglas del usuario, si las hay."""
+    if not rules:
+        return engine
+    always = rules.get("always") or []
+    never = rules.get("never") or []
+    if not always and not never:
+        return engine
+    return RuledEngine(engine, always, never)
+
+
 # --------- modelos ---------
 
 class DetectReq(BaseModel):
     text: str
     engine: str | None = None
+    rules: dict | None = None
 
 
 class AnonReq(BaseModel):
     text: str
     mode: str | None = None
     engine: str | None = None
+    rules: dict | None = None
 
 
 class DeanonReq(BaseModel):
@@ -113,6 +154,7 @@ def health():
 def detect(req: DetectReq):
     _check_size(req.text)
     engine, used = _pick_engine(req.engine)
+    engine = _with_rules(engine, req.rules)
     spans = engine.detect(req.text)
     return {"engine": used, "spans": [s.as_dict() for s in spans], "count": len(spans)}
 
@@ -122,12 +164,15 @@ def anonymize(req: AnonReq):
     _check_size(req.text)
     mode = _check_mode(req.mode or MODE_DEFAULT)
     engine, used = _pick_engine(req.engine)
+    engine = _with_rules(engine, req.rules)
     anon = Anonymizer(mode, salt=SALT)
-    output = anon.process(req.text, engine.detect(req.text))
+    spans = engine.detect(req.text)
+    output = anon.process(req.text, spans)
     return {
         "engine": used,
         "mode": mode,
         "output": output,
+        "spans": [s.as_dict() for s in spans],   # para resaltar en la UI
         "map": anon.mapping,            # no vacio solo en modo pseudo
         "reversible": mode == "pseudo",
         "summary": anon.summary,
@@ -144,7 +189,8 @@ def reidentify(req: DeanonReq):
 @app.post("/anonymize_file", dependencies=[Depends(require_token)])
 async def anonymize_file(file: UploadFile = File(...),
                          mode: str = Form(MODE_DEFAULT),
-                         engine: str | None = Form(None)):
+                         engine: str | None = Form(None),
+                         rules_json: str = Form("")):
     raw = await file.read()
     try:
         content = raw.decode("utf-8")
@@ -155,7 +201,14 @@ async def anonymize_file(file: UploadFile = File(...),
         ) from None
     _check_size(content)
     mode = _check_mode(mode)
+    rules = None
+    if rules_json.strip():
+        try:
+            rules = json.loads(rules_json)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=422, detail="rules_json no es JSON valido.") from None
     eng, used = _pick_engine(engine)
+    eng = _with_rules(eng, rules)
     anon = Anonymizer(mode, salt=SALT)
     fmt, output = formats.anonymize_file(file.filename or "input.txt", content, eng, anon)
     return {
@@ -168,3 +221,11 @@ async def anonymize_file(file: UploadFile = File(...),
         "reversible": mode == "pseudo",
         "summary": anon.summary,
     }
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

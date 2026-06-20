@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Anonimal · Anonimiza antes de enviar</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
+<meta name="theme-color" content="#f7f7fb" />
+<script src="/static/theme-init.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter/index.css" />
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <span class="logo"><img src="/static/logo.svg" alt="" /> Anonimal</span>
+    <span class="spacer"></span>
+    <span class="badge" id="engineBadge" title="Motor en uso">lite</span>
+    <select class="mini" id="lang" aria-label="Idioma">
+      <option value="es">ES</option>
+      <option value="en">EN</option>
+      <option value="fr">FR</option>
+      <option value="pt">PT</option>
+      <option value="it">IT</option>
+    </select>
+    <button class="icon-btn" id="themeBtn" aria-label="Tema" title="Tema">◐</button>
+  </div>
+
+  <header class="hero">
+    <h1 data-i18n="tagline">Anonimiza antes de enviar.</h1>
+    <p data-i18n="subtitle">El dato nunca sale de tu máquina.</p>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" id="tabAnon" data-i18n="tabAnon">Anonimizar</button>
+    <button class="tab" id="tabReid" data-i18n="tabReid">Re-identificar</button>
+  </div>
+
+  <!-- ===== ANONIMIZAR ===== -->
+  <section class="panel" id="panelAnon">
+    <textarea id="input" data-i18n-ph="inputPlaceholder" placeholder="Pegá el texto a anonimizar…"></textarea>
+
+    <div class="controls">
+      <div class="field">
+        <label data-i18n="modeLabel">Modo</label>
+        <select id="mode">
+          <option value="pseudo" data-i18n="mode_pseudo">Seudónimo (reversible)</option>
+          <option value="typed" data-i18n="mode_typed">Etiquetado</option>
+          <option value="anon" data-i18n="mode_anon">Anónimo</option>
+          <option value="mask" data-i18n="mode_mask">Máscara</option>
+          <option value="hash" data-i18n="mode_hash">Hash</option>
+        </select>
+      </div>
+      <div class="field">
+        <label data-i18n="engineLabel">Motor</label>
+        <select id="engine">
+          <option value="auto" data-i18n="engine_auto">Automático</option>
+          <option value="lite" data-i18n="engine_lite">Lite (regex)</option>
+          <option value="ml" data-i18n="engine_ml">ML (OPF)</option>
+        </select>
+      </div>
+      <div class="grow"></div>
+      <button class="btn" id="anonBtn" data-i18n="btnAnon">Anonimizar</button>
+    </div>
+
+    <details class="rules">
+      <summary data-i18n="rulesTitle">Reglas propias</summary>
+      <div class="rules-grid">
+        <div class="field">
+          <label data-i18n="alwaysLabel">Ocultar siempre</label>
+          <input id="ruleAlways" type="text" data-i18n-ph="rulesPh" placeholder="término1, término2" />
+        </div>
+        <div class="field">
+          <label data-i18n="neverLabel">No ocultar nunca</label>
+          <input id="ruleNever" type="text" data-i18n-ph="rulesPh" placeholder="término1, término2" />
+        </div>
+      </div>
+      <p class="rules-hint" data-i18n="rulesHint">Separados por coma. "Ocultar siempre" agrega; "no ocultar nunca" excluye.</p>
+    </details>
+
+    <div class="file-row">
+      <label class="file-btn" for="files" data-i18n="filesLabel">Subir archivos</label>
+      <input id="files" type="file" multiple class="hidden"
+             accept=".txt,.md,.csv,.json,.log,.srt,.html,.htm" />
+      <span data-i18n="filesHint">txt, md, csv, json, log, srt, html — uno o varios.</span>
+    </div>
+
+    <p class="note err hidden" id="anonErr"></p>
+
+    <div class="result hidden" id="result">
+      <h3 data-i18n="detectedTitle">Detectado</h3>
+      <div class="box" id="highlight"></div>
+      <div class="chips" id="summary"></div>
+
+      <div style="margin-top:16px">
+        <h3 data-i18n="resultTitle">Resultado</h3>
+        <div class="box" id="output"></div>
+        <div class="result-actions">
+          <button class="btn ghost" id="copyBtn" data-i18n="copy">Copiar</button>
+          <button class="btn ghost" id="dlBtn" data-i18n="download">Descargar</button>
+          <button class="btn ghost hidden" id="dlMapBtn" data-i18n="downloadMap">Descargar mapa</button>
+          <button class="btn ghost" id="sendBtn" data-i18n="sendEscriba">Enviar a Escriba</button>
+        </div>
+        <p class="note hidden" id="reversibleNote" data-i18n="reversibleNote">Reversible: guardá el mapa para re-identificar.</p>
+      </div>
+    </div>
+
+    <div class="files-out" id="filesOut"></div>
+  </section>
+
+  <!-- ===== RE-IDENTIFICAR ===== -->
+  <section class="panel hidden" id="panelReid">
+    <textarea id="reidInput" data-i18n-ph="reidInputPh" placeholder="Pegá el texto anonimizado…"></textarea>
+    <div class="field" style="margin-top:12px">
+      <label data-i18n="reidMapLabel">Mapa de reversión (JSON)</label>
+      <textarea id="reidMap" class="box mono" style="min-height:90px" data-i18n-ph="reidMapPh" placeholder='{"EMAIL_1":"juan@acme.com"}'></textarea>
+    </div>
+    <div class="file-row">
+      <label class="file-btn" for="reidMapFile" data-i18n="reidMapFile">Cargar mapa (.json)</label>
+      <input id="reidMapFile" type="file" accept=".json" class="hidden" />
+    </div>
+    <div class="controls">
+      <div class="grow"></div>
+      <button class="btn" id="reidBtn" data-i18n="btnReid">Re-identificar</button>
+    </div>
+    <p class="note err hidden" id="reidErr"></p>
+    <div class="result hidden" id="reidResult">
+      <h3 data-i18n="resultTitle">Resultado</h3>
+      <div class="box" id="reidOutput"></div>
+      <div class="result-actions">
+        <button class="btn ghost" id="reidCopyBtn" data-i18n="copy">Copiar</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Anonimal · Diego Parras</span>
+    <span data-i18n="footerNote">El dato nunca sale del navegador en el handoff a Escriba.</span>
+  </footer>
+
+</div>
+<script src="/static/i18n.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

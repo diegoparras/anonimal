@@ -33,7 +33,7 @@ from .lite_engine import LiteEngine
 from .modes import GENERIC_TOKEN, MODES, Anonymizer, deanonymize
 from .rules import RuledEngine, merge
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 
 def ui_path(name: str = "anon-options.js") -> str:

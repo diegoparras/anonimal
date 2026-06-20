@@ -2,6 +2,14 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
+## [0.4.1] — AnonOptions: opción `showRules`
+
+- **`AnonOptions.mount(el, { showRules })`**: permite ocultar la UI de reglas del
+  componente compartido cuando la app anfitriona ya tiene la suya. Lo usa Escriba,
+  que conserva su propio editor de reglas RE2 (validar + plantilla) y monta el
+  componente con `showRules:false`. Default `true` (Extracta/Fisherboy lo usan
+  completo). Sin cambios de motor ni de API.
+
 ## [0.4.0] — Librería + componente compartidos
 
 - **`anonimal_lite` como librería instalable** (stdlib puro, `pip install

@@ -94,13 +94,22 @@ no-root, topes de tamaño (`ANONIMAL_MAX_CHARS`).
 El repo se audita solo, en CI y en local (`python -m tests.run_tests`):
 
 - **ruff** + **vulture** — sin código redundante ni muerto.
+- **mypy** — chequeo estático de tipos.
 - **bandit** — auditoría de seguridad estática (SAST).
 - **pip-audit** — vulnerabilidades conocidas en dependencias (OSV/CVE).
 - **detect-secrets** — que no se filtre ningún secreto al repo.
+- **Invariante de privacidad** — ningún valor original de PII sobrevive en la
+  salida, en ninguno de los 5 modos (`tests/test_privacy.py`).
+- **Smoke** — la app arranca de verdad y anonimiza (`scripts/smoke.py`).
+- **Cobertura** ≥ 85% (`coverage`, umbral en `pyproject.toml`).
+- **Trivy** (CI) — escanea la imagen Docker (CVEs del SO + todo el árbol
+  instalado) además de las dependencias.
 
 ```bash
 pip install -r requirements-dev.txt
-ruff check . && vulture && bandit -c pyproject.toml -r app -q && pip-audit -r requirements.txt
+ruff check . && vulture && mypy app && bandit -c pyproject.toml -r app -q && pip-audit -r requirements.txt
+coverage run -m tests.run_tests && coverage report
+python scripts/smoke.py
 ```
 
 Ver `SECURITY.md` para reporte de vulnerabilidades.

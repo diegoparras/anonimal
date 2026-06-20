@@ -35,11 +35,9 @@ class OpfEngine:
             if self._opf is not None or self._error is not None:
                 return
             try:
-                from opf import OPF  # type: ignore
+                from opf import OPF
                 if not os.getenv("OPF_CHECKPOINT"):
-                    from opf._common.checkpoint_download import (
-                        ensure_default_checkpoint,  # type: ignore
-                    )
+                    from opf._common.checkpoint_download import ensure_default_checkpoint
                     ensure_default_checkpoint()
                 opf = OPF(device=self.device, output_mode="typed")
                 opf.redact("warm-up")           # primer forward pass

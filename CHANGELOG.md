@@ -24,9 +24,12 @@ dentro de Escriba. **No toca Escriba/Fisherboy/Extracta.**
 - Empaquetado: imagen full (ML, ~6-7 GB) y lite (regex, liviana) + compose.
 - 18 tests (motor + API) en verde.
 - Calidad y seguridad como pruebas (runner local + CI `.github/workflows/ci.yml`):
-  ruff + vulture (sin código redundante/muerto), bandit (SAST), pip-audit (vulns
-  de deps), detect-secrets (no filtrar secretos). Config en `pyproject.toml`,
-  herramientas en `requirements-dev.txt`, `SECURITY.md` y `.secrets.baseline`.
+  ruff + vulture (sin código redundante/muerto), mypy (tipos), bandit (SAST),
+  pip-audit (vulns de deps), detect-secrets (no filtrar secretos), cobertura ≥85%
+  (coverage), invariante de privacidad (`tests/test_privacy.py`), smoke real
+  (`scripts/smoke.py`) y Trivy (scan de la imagen Docker en CI). Config en
+  `pyproject.toml`, herramientas en `requirements-dev.txt`, `SECURITY.md` y
+  `.secrets.baseline`. 28 tests en verde, cobertura 92%.
 
 ### Pendiente (proximas fases)
 - Fase 1: UI web (fucsia, claro/oscuro, i18n x7, reglas propias, redaccion de

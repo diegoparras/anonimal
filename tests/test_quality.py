@@ -63,6 +63,22 @@ def test_pip_audit_sin_vulnerabilidades():
         raise AssertionError(f"pip-audit encontro vulnerabilidades:\n{blob}")
 
 
+def test_mypy_sin_errores_de_tipos():
+    if not _have("mypy"):
+        return "SKIP: mypy no instalado"
+    r = _run(["mypy", "app"])
+    assert r.returncode == 0, f"mypy encontro errores:\n{r.stdout}\n{r.stderr}"
+
+
+def test_smoke_arranca_y_anonimiza():
+    # Levanta uvicorn real y prueba /health + /anonymize (ver scripts/smoke.py).
+    if not (_have("uvicorn") and _have("httpx")):
+        return "SKIP: uvicorn/httpx no instalados"
+    r = subprocess.run([sys.executable, str(ROOT / "scripts" / "smoke.py")],
+                       cwd=ROOT, capture_output=True, text=True)
+    assert r.returncode == 0, f"smoke fallo:\n{r.stdout}\n{r.stderr}"
+
+
 def test_detect_secrets_sin_secretos():
     if not _have("detect_secrets"):
         return "SKIP: detect-secrets no instalado"

@@ -20,6 +20,8 @@ jobs:
         run: ruff check .
       - name: Vulture (dead code)
         run: vulture
+      - name: Mypy (tipos)
+        run: mypy app
       - name: Bandit (auditoria de seguridad - SAST)
         run: bandit -c pyproject.toml -r app -q
       - name: pip-audit (vulnerabilidades en dependencias)
@@ -27,5 +29,44 @@ jobs:
       - name: detect-secrets (no filtrar secretos)
         run: detect-secrets-hook --baseline .secrets.baseline $(git ls-files)
 
-      - name: Tests
-        run: pytest -q
+      - name: Tests + cobertura (umbral en pyproject.toml)
+        run: |
+          coverage run -m pytest -q tests/test_engine.py tests/test_api.py tests/test_privacy.py
+          coverage report
+
+      - name: Trivy (vulns + secrets + misconfig del repo)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+  imagen-lite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build imagen lite
+        run: docker build -f Dockerfile.lite -t anonimal:lite .
+
+      - name: Smoke del contenedor (arranca + /health + /anonymize)
+        run: |
+          docker run -d --name anonimal_smoke -p 8920:8000 anonimal:lite
+          pip install httpx
+          SMOKE_URL=http://127.0.0.1:8920 python scripts/smoke.py
+          docker rm -f anonimal_smoke
+
+      - name: Trivy (scan de la imagen lite)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: image
+          image-ref: anonimal:lite
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+  # NOTA: la imagen full (ML, ~6-7 GB con torch/transformers/OPF) no se buildea en
+  # cada PR por costo. Escanearla con Trivy es un paso aparte/programado antes de
+  # publicarla:  docker build -t anonimal:full .  &&  trivy image anonimal:full

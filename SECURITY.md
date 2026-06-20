@@ -17,8 +17,13 @@ Cada push / PR corre en CI (ver `.github/workflows/ci.yml`) y también local
 - **pip-audit** — vulnerabilidades conocidas en dependencias (OSV/CVE).
 - **detect-secrets** — evita filtrar credenciales al repo (baseline en
   `.secrets.baseline`).
-- **ruff** + **vulture** — sin código redundante ni muerto (menos superficie,
-  menos sorpresas).
+- **Trivy** (CI) — escanea la imagen Docker: CVEs del SO + todo el árbol
+  instalado (torch/transformers/git), que `pip-audit` no ve.
+- **ruff** + **vulture** + **mypy** — sin código redundante/muerto y con tipos
+  chequeados (menos superficie, menos sorpresas).
+- **Invariante de privacidad** — un test exige que ningún valor original de PII
+  sobreviva en la salida (`tests/test_privacy.py`).
+- **Smoke** — la app arranca de verdad antes de cada deploy (`scripts/smoke.py`).
 
 ## Modelo de exposición
 

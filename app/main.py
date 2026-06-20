@@ -1,0 +1,169 @@
+# -*- coding: utf-8 -*-
+"""Anonimal — API de anonimizacion de PII, local y self-hosted.
+
+El motor corre en tu maquina: el dato nunca sale. Expone deteccion,
+anonimizacion (5 modos), re-identificacion (reversibilidad) y anonimizacion de
+archivos preservando el formato.
+
+Modos: typed / anon / pseudo (reversible) / mask / hash  (ver engine/modes.py).
+Motores: lite (regex, siempre) y ml (OPF, si esta instalado).
+
+SEGURIDAD: pensado para correr LOCAL. Si lo expones, defini `ANONIMAL_TOKEN` y
+poné un reverse proxy con TLS adelante. Sin token, la API queda abierta (asume
+localhost).
+"""
+from __future__ import annotations
+
+import os
+
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from pydantic import BaseModel, Field
+
+from .engine import formats, get_engine, lite_engine
+from .engine.modes import MODES, Anonymizer, deanonymize
+
+MODE_DEFAULT = os.getenv("ANONIMAL_MODE", "pseudo")
+ENGINE_DEFAULT = os.getenv("ANONIMAL_ENGINE", "auto")   # auto | lite | ml
+MAX_CHARS = int(os.getenv("ANONIMAL_MAX_CHARS", "500000"))
+SALT = os.getenv("ANONIMAL_SALT", "anonimal")
+TOKEN = os.getenv("ANONIMAL_TOKEN")  # si esta seteado, se exige en cada request
+
+app = FastAPI(title="Anonimal", version="0.1.0",
+              description="Anonimizacion de PII local y self-hosted.")
+
+
+def require_token(
+    authorization: str | None = Header(None),
+    x_anonimal_token: str | None = Header(None),
+) -> None:
+    if not TOKEN:
+        return
+    supplied = x_anonimal_token
+    if not supplied and authorization and authorization.lower().startswith("bearer "):
+        supplied = authorization.split(" ", 1)[1]
+    if supplied != TOKEN:
+        raise HTTPException(status_code=401, detail="Token invalido o ausente.")
+
+
+def _pick_engine(requested: str | None):
+    """Devuelve (engine, nombre_usado). 'auto' usa ML si esta listo, si no lite.
+    'ml' explicito da 503 si no esta disponible."""
+    name = requested or ENGINE_DEFAULT
+    if name in ("ml", "auto"):
+        ml = get_engine("ml")
+        if ml is not None and ml.ready():
+            return ml, "ml"
+        if name == "ml":
+            detail = "Motor ML no disponible."
+            if ml is not None and ml.error:
+                detail = f"Motor ML no disponible: {ml.error}"
+            raise HTTPException(status_code=503, detail=detail)
+    return lite_engine(), "lite"
+
+
+def _check_size(text: str) -> None:
+    if len(text) > MAX_CHARS:
+        raise HTTPException(status_code=413,
+                            detail=f"El texto supera el limite de {MAX_CHARS} caracteres.")
+
+
+def _check_mode(mode: str) -> str:
+    if mode not in MODES:
+        raise HTTPException(status_code=422,
+                            detail=f"Modo invalido: {mode!r}. Validos: {', '.join(MODES)}.")
+    return mode
+
+
+# --------- modelos ---------
+
+class DetectReq(BaseModel):
+    text: str
+    engine: str | None = None
+
+
+class AnonReq(BaseModel):
+    text: str
+    mode: str | None = None
+    engine: str | None = None
+
+
+class DeanonReq(BaseModel):
+    text: str
+    map: dict[str, str] = Field(default_factory=dict)
+
+
+# --------- rutas ---------
+
+@app.get("/health")
+def health():
+    ml = get_engine("ml")
+    return {
+        "status": "ok",
+        "engine_default": ENGINE_DEFAULT,
+        "mode_default": MODE_DEFAULT,
+        "lite": True,
+        "ml": {
+            "available": ml is not None,
+            "ready": bool(ml and ml.ready()),
+            "error": (ml.error if ml is not None else None),
+        },
+    }
+
+
+@app.post("/detect", dependencies=[Depends(require_token)])
+def detect(req: DetectReq):
+    _check_size(req.text)
+    engine, used = _pick_engine(req.engine)
+    spans = engine.detect(req.text)
+    return {"engine": used, "spans": [s.as_dict() for s in spans], "count": len(spans)}
+
+
+@app.post("/anonymize", dependencies=[Depends(require_token)])
+def anonymize(req: AnonReq):
+    _check_size(req.text)
+    mode = _check_mode(req.mode or MODE_DEFAULT)
+    engine, used = _pick_engine(req.engine)
+    anon = Anonymizer(mode, salt=SALT)
+    output = anon.process(req.text, engine.detect(req.text))
+    return {
+        "engine": used,
+        "mode": mode,
+        "output": output,
+        "map": anon.mapping,            # no vacio solo en modo pseudo
+        "reversible": mode == "pseudo",
+        "summary": anon.summary,
+    }
+
+
+@app.post("/deanonymize", dependencies=[Depends(require_token)])
+def reidentify(req: DeanonReq):
+    if not req.map:
+        raise HTTPException(status_code=422, detail="Falta el mapa de reversion.")
+    return {"output": deanonymize(req.text, req.map)}
+
+
+@app.post("/anonymize_file", dependencies=[Depends(require_token)])
+async def anonymize_file(file: UploadFile = File(...),
+                         mode: str = Form(MODE_DEFAULT),
+                         engine: str | None = Form(None)):
+    raw = await file.read()
+    try:
+        content = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=415,
+                            detail="Solo archivos de texto UTF-8 (txt/md/csv/json/log/srt/html).")
+    _check_size(content)
+    mode = _check_mode(mode)
+    eng, used = _pick_engine(engine)
+    anon = Anonymizer(mode, salt=SALT)
+    fmt, output = formats.anonymize_file(file.filename or "input.txt", content, eng, anon)
+    return {
+        "filename": file.filename,
+        "format": fmt,
+        "engine": used,
+        "mode": mode,
+        "content": output,
+        "map": anon.mapping,
+        "reversible": mode == "pseudo",
+        "summary": anon.summary,
+    }

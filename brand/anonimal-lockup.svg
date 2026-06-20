@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 240" role="img" aria-label="Anonimal">
+  <g transform="translate(40,45) scale(2.34375)">
+    <rect width="64" height="64" rx="15" fill="#d6336c"/>
+    <g fill="#ffffff">
+      <path d="M19 23 L20.5 10 L31 19.5 Z"/>
+      <path d="M45 23 L43.5 10 L33 19.5 Z"/>
+    </g>
+    <circle cx="32" cy="37" r="16.5" fill="none" stroke="#ffffff" stroke-width="3"/>
+    <rect x="20.5" y="31" width="23" height="7.5" rx="3.75" fill="#ffffff"/>
+    <circle cx="32" cy="45" r="1.9" fill="#ffffff"/>
+  </g>
+  <text x="228" y="151"
+        font-family="'Inter Variable','Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif"
+        font-size="86" font-weight="700" letter-spacing="-0.03em" fill="#16161a">Anonimal</text>
+</svg>

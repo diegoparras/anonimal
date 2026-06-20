@@ -1,0 +1,30 @@
+# Anonimal — local / self-hosted.
+#   docker compose up anonimal          -> imagen FULL (motor ML, ~6-7 GB)
+#   docker compose --profile lite up    -> imagen LITE (solo regex, liviana)
+#
+# Por defecto NO se expone a internet: si lo publicas, defini ANONIMAL_TOKEN y
+# pone un reverse proxy con TLS adelante.
+services:
+  anonimal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/diegoparras/anonimal:latest
+    ports:
+      - "8920:8000"
+    environment:
+      ANONIMAL_ENGINE: auto
+      # ANONIMAL_TOKEN: "cambiame-si-lo-expones"
+    restart: unless-stopped
+
+  anonimal-lite:
+    profiles: ["lite"]
+    build:
+      context: .
+      dockerfile: Dockerfile.lite
+    image: ghcr.io/diegoparras/anonimal:lite
+    ports:
+      - "8921:8000"
+    environment:
+      ANONIMAL_ENGINE: lite
+    restart: unless-stopped

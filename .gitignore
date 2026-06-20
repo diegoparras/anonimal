@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Entornos
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Modelos / checkpoints (nunca se commitean; se hornean en la imagen)
+.opf/
+*.safetensors
+*.bin
+*.pt
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,7 @@
+# Anonimal — dependencias base (sirven para la imagen full y la lite).
+# El motor ML (OPF + torch) se instala aparte en el Dockerfile full; es la
+# parte pesada y no hace falta para el motor lite (solo regex, stdlib).
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.29,<1.0
+pydantic>=2.0,<3.0
+python-multipart>=0.0.9

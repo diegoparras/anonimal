@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Anonimal">
+  <rect width="64" height="64" rx="15" fill="#d6336c"/>
+  <!-- orejas (animal) -->
+  <g fill="#ffffff">
+    <path d="M19 23 L20.5 10 L31 19.5 Z"/>
+    <path d="M45 23 L43.5 10 L33 19.5 Z"/>
+  </g>
+  <!-- cabeza -->
+  <circle cx="32" cy="37" r="16.5" fill="none" stroke="#ffffff" stroke-width="3"/>
+  <!-- barra de censura sobre los ojos (anonimato / redaccion) -->
+  <rect x="20.5" y="31" width="23" height="7.5" rx="3.75" fill="#ffffff"/>
+  <!-- hocico -->
+  <circle cx="32" cy="45" r="1.9" fill="#ffffff"/>
+</svg>

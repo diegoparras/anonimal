@@ -106,3 +106,11 @@ def test_propagacion_marca_todas_las_apariciones():
 def test_normalize_une_guion_de_pdf():
     from anonimal_lite.base import normalize
     assert normalize("CUIT 20-\n12345678-6") == "CUIT 20-12345678-6"
+
+
+def test_ui_path_empaqueta_el_componente_js():
+    import os
+
+    from anonimal_lite import ui_path
+    p = ui_path()
+    assert p.endswith("anon-options.js") and os.path.exists(p)

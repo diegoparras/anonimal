@@ -22,6 +22,10 @@ Homepage = "https://github.com/diegoparras/anonimal"
 [tool.setuptools]
 packages = ["anonimal_lite"]           # solo la librería; app/ no se empaqueta
 
+[tool.setuptools.package-data]
+# El componente JS compartido viaja DENTRO del paquete (fuente única para los 3).
+anonimal_lite = ["ui/*.js"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 100

@@ -35,6 +35,16 @@ from .rules import RuledEngine, merge
 
 __version__ = "0.3.0"
 
+
+def ui_path(name: str = "anon-options.js") -> str:
+    """Ruta absoluta al asset de UI compartido empaquetado (el componente JS de
+    opciones de anonimización). Las apps lo sirven como estático:
+        from anonimal_lite import ui_path
+        FileResponse(ui_path())   # /static/anon-options.js
+    """
+    from importlib.resources import files
+    return str(files(__package__).joinpath("ui", name))
+
 __all__ = [
     "GENERIC_TOKEN",
     "MODES",
@@ -56,4 +66,5 @@ __all__ = [
     "propagate",
     "resolve_overlaps",
     "type_of",
+    "ui_path",
 ]

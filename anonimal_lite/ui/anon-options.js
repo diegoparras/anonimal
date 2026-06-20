@@ -172,37 +172,46 @@
     }
     container.appendChild(modeF.wrap);
 
-    // --- Reglas propias (avanzado, plegable) ---
-    var det = elem("details", { border: "1px solid var(--border, #ddd)", borderRadius: "var(--radius, 10px)", padding: "0 12px" });
-    var sum = elem("summary", { cursor: "pointer", padding: "10px 0", fontSize: "13px", fontWeight: "600", color: "var(--muted-2, var(--text, #333))" });
-    sum.textContent = t(lang, "rulesTitle");
-    det.appendChild(sum);
-    var body = elem("div", { padding: "4px 0 12px", display: "flex", flexDirection: "column", gap: "10px" });
+    // --- Reglas propias (avanzado, plegable) --- opcional (opts.showRules).
+    // Apps con su propia UI de reglas (p. ej. Escriba) montan con showRules:false
+    // y usan AnonOptions solo para el núcleo (modo + indicador).
+    var alwaysIn = null, neverIn = null, patTa = null;
+    if (opts.showRules !== false) {
+      var det = elem("details", { border: "1px solid var(--border, #ddd)", borderRadius: "var(--radius, 10px)", padding: "0 12px" });
+      var sum = elem("summary", { cursor: "pointer", padding: "10px 0", fontSize: "13px", fontWeight: "600", color: "var(--muted-2, var(--text, #333))" });
+      sum.textContent = t(lang, "rulesTitle");
+      det.appendChild(sum);
+      var body = elem("div", { padding: "4px 0 12px", display: "flex", flexDirection: "column", gap: "10px" });
 
-    var alwaysF = field(t(lang, "alwaysLabel"));
-    var alwaysIn = elem("input"); alwaysIn.type = "text"; alwaysIn.placeholder = t(lang, "listPh");
-    alwaysF.wrap.style.margin = "0"; alwaysF.wrap.appendChild(alwaysIn); body.appendChild(alwaysF.wrap);
+      var alwaysF = field(t(lang, "alwaysLabel"));
+      alwaysIn = elem("input"); alwaysIn.type = "text"; alwaysIn.placeholder = t(lang, "listPh");
+      alwaysF.wrap.style.margin = "0"; alwaysF.wrap.appendChild(alwaysIn); body.appendChild(alwaysF.wrap);
 
-    var neverF = field(t(lang, "neverLabel"));
-    var neverIn = elem("input"); neverIn.type = "text"; neverIn.placeholder = t(lang, "listPh");
-    neverF.wrap.style.margin = "0"; neverF.wrap.appendChild(neverIn); body.appendChild(neverF.wrap);
+      var neverF = field(t(lang, "neverLabel"));
+      neverIn = elem("input"); neverIn.type = "text"; neverIn.placeholder = t(lang, "listPh");
+      neverF.wrap.style.margin = "0"; neverF.wrap.appendChild(neverIn); body.appendChild(neverF.wrap);
 
-    var patF = field(t(lang, "patternsLabel"));
-    var patTa = elem("textarea", { fontFamily: "ui-monospace, Consolas, monospace", fontSize: "12px", minHeight: "64px", resize: "vertical" });
-    patTa.spellcheck = false; patTa.placeholder = t(lang, "patternsHint");
-    patF.wrap.style.margin = "0"; patF.wrap.appendChild(patTa); body.appendChild(patF.wrap);
+      var patF = field(t(lang, "patternsLabel"));
+      patTa = elem("textarea", { fontFamily: "ui-monospace, Consolas, monospace", fontSize: "12px", minHeight: "64px", resize: "vertical" });
+      patTa.spellcheck = false; patTa.placeholder = t(lang, "patternsHint");
+      patF.wrap.style.margin = "0"; patF.wrap.appendChild(patTa); body.appendChild(patF.wrap);
 
-    det.appendChild(body);
-    container.appendChild(det);
+      det.appendChild(body);
+      container.appendChild(det);
+    }
 
     function getValues() {
       return {
         mode: sel.value,
-        rules: { always: parseList(alwaysIn.value), never: parseList(neverIn.value), patterns: parsePatterns(patTa.value) },
+        rules: {
+          always: alwaysIn ? parseList(alwaysIn.value) : [],
+          never: neverIn ? parseList(neverIn.value) : [],
+          patterns: patTa ? parsePatterns(patTa.value) : [],
+        },
       };
     }
     [sel, alwaysIn, neverIn, patTa].forEach(function (n) {
-      n.addEventListener("change", function () { onChange(getValues()); });
+      if (n) n.addEventListener("change", function () { onChange(getValues()); });
     });
 
     var api = { getValues: getValues, lang: lang };

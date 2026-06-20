@@ -45,7 +45,12 @@ NUMERIC_TYPES = frozenset({"ID", "TEL", "IP"})
 
 
 def type_of(label: str) -> str:
-    return _LABELS.get(label, _DEFAULT)[0]
+    if label in _LABELS:
+        return _LABELS[label][0]
+    # Etiqueta libre (regla custom del usuario): se usa como tipo, saneada a
+    # [A-Z]+ para respetar el formato de token «TIPO_N».
+    free = "".join(ch for ch in label.upper() if "A" <= ch <= "Z")
+    return free or _DEFAULT[0]
 
 
 def placeholder_of(label: str) -> str:

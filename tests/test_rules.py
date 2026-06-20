@@ -26,3 +26,17 @@ def test_sin_reglas_no_cambia_la_deteccion():
     eng = RuledEngine(BASE, always=[], never=[])
     text = "mail juan@acme.com"
     assert [s.text for s in eng.detect(text)] == [s.text for s in BASE.detect(text)]
+
+
+def test_regex_pattern_oculta_con_su_tipo():
+    eng = RuledEngine(BASE, patterns=[{"regex": r"LEG-\d{4}", "placeholder": "ID"}])
+    text = "empleado LEG-1234 en el sistema"
+    out = Anonymizer("pseudo").process(text, eng.detect(text))
+    assert "LEG-1234" not in out and "«ID_1»" in out   # placeholder -> tipo del token
+
+
+def test_regex_invalido_se_ignora():
+    # Una regex rota no debe romper la corrida (se saltea ese patrón).
+    eng = RuledEngine(BASE, patterns=[{"regex": "([a-z", "placeholder": "X"}])
+    spans = eng.detect("texto normal sin pii")
+    assert isinstance(spans, list)

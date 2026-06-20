@@ -111,9 +111,10 @@ def _with_rules(engine, rules: dict | None):
         return engine
     always = rules.get("always") or []
     never = rules.get("never") or []
-    if not always and not never:
+    patterns = rules.get("patterns") or []
+    if not always and not never and not patterns:
         return engine
-    return RuledEngine(engine, always, never)
+    return RuledEngine(engine, always, never, patterns)
 
 
 # --------- modelos ---------

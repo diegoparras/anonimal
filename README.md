@@ -81,6 +81,9 @@ Las imágenes se publican solas: al cortar un tag `v*`, el CI
 (`ghcr.io/diegoparras/anonimal:latest`) y la **lite** (`:lite`), con smoke y
 Trivy como gate previo.
 
+**Despliegue completo** (Docker · Compose · EasyPanel · detrás de Escriba):
+ver **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+
 Ejemplo:
 
 ```bash

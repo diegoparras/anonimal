@@ -35,8 +35,8 @@ python_version = "3.11"
 files = ["app"]
 
 [[tool.mypy.overrides]]
-# `opf` es dependencia opcional (solo en la imagen full); sin stubs.
-module = ["opf.*"]
+# `opf` (opcional) y `fitz`/PyMuPDF no traen stubs de tipos.
+module = ["opf.*", "fitz", "fitz.*"]
 ignore_missing_imports = true
 
 [tool.coverage.run]

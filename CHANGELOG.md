@@ -4,11 +4,11 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [No publicado]
 
-### 0.2.0 — Fase 1a: UI web
+### 0.2.0 — Fase 1: UI web
 
 Interfaz web servida por FastAPI, con el sistema de diseño del ecosistema
 (índigo antifaz `#4a4e7c`, Inter, claro/oscuro con `[data-theme]`, sin emojis,
-español neutro). i18n en es/en/fr/pt/it (zh/ja en 1b).
+español neutro). i18n en 7 idiomas (es/en/fr/pt/it/zh/ja).
 
 - Pegar texto → resaltado de los datos detectados + salida anonimizada, con
   selector de **modo** (5) y **motor**, y chips de resumen por categoría.
@@ -18,10 +18,13 @@ español neutro). i18n en es/en/fr/pt/it (zh/ja en 1b).
 - **Subir archivos** (uno o varios) preservando formato, con descarga por archivo.
 - **Copiar / Descargar / Descargar mapa / Enviar a Escriba** (handoff
   `sessionStorage['escriba.handoff']`).
+- **Redacción visual de PDF** (`/redact_pdf`, `app/pdf.py` con PyMuPDF): tachado
+  real (apply_redactions) de los datos detectados + borrado de metadata
+  (DocInfo + XMP). Control de subida de PDF en la UI.
 - Backend: estáticos servidos, headers de seguridad (CSP), `/anonymize` ahora
   devuelve `spans` para resaltar.
-- 31 tests en verde (motor + API + privacidad + reglas + calidad), cobertura 90%.
-- Pendiente 1b: i18n zh/ja y **redacción visual de PDF** (PyMuPDF, desde Escriba).
+- 32 tests en verde (motor + API + privacidad + reglas + PDF + calidad),
+  cobertura 86%.
 
 ### 0.1.0 — Fase 0: motor + API (standalone)
 

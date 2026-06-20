@@ -31,6 +31,7 @@ from .engine.rules import RuledEngine
 MODE_DEFAULT = os.getenv("ANONIMAL_MODE", "pseudo")
 ENGINE_DEFAULT = os.getenv("ANONIMAL_ENGINE", "auto")   # auto | lite | ml
 MAX_CHARS = int(os.getenv("ANONIMAL_MAX_CHARS", "500000"))
+MAX_PDF_BYTES = int(os.getenv("ANONIMAL_MAX_PDF_BYTES", str(25 * 1024 * 1024)))
 SALT = os.getenv("ANONIMAL_SALT", "anonimal")
 TOKEN = os.getenv("ANONIMAL_TOKEN")  # si esta seteado, se exige en cada request
 
@@ -221,6 +222,43 @@ async def anonymize_file(file: UploadFile = File(...),
         "reversible": mode == "pseudo",
         "summary": anon.summary,
     }
+
+
+@app.post("/redact_pdf", dependencies=[Depends(require_token)])
+async def redact_pdf(file: UploadFile = File(...),
+                     engine: str | None = Form(None),
+                     rules_json: str = Form("")):
+    from . import pdf as pdf_mod
+    if not pdf_mod.is_available():
+        raise HTTPException(status_code=503,
+                            detail="Redaccion de PDF no disponible (falta PyMuPDF).")
+    raw = await file.read()
+    if len(raw) > MAX_PDF_BYTES:
+        raise HTTPException(status_code=413,
+                            detail=f"El PDF supera el limite de {MAX_PDF_BYTES} bytes.")
+    rules = None
+    if rules_json.strip():
+        try:
+            rules = json.loads(rules_json)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=422, detail="rules_json no es JSON valido.") from None
+    eng, _used = _pick_engine(engine)
+    eng = _with_rules(eng, rules)
+    try:
+        out, count = pdf_mod.redact_pdf_bytes(raw, eng)
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e)) from None
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"No se pudo procesar el PDF: {e}") from None
+    name = (file.filename or "documento.pdf").rsplit("/", 1)[-1]
+    return Response(
+        content=out,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="redactado_{name}"',
+            "X-Redactions": str(count),
+        },
+    )
 
 
 @app.get("/", include_in_schema=False)

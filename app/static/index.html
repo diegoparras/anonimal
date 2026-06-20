@@ -23,6 +23,8 @@
       <option value="fr">FR</option>
       <option value="pt">PT</option>
       <option value="it">IT</option>
+      <option value="zh">中文</option>
+      <option value="ja">日本語</option>
     </select>
     <button class="icon-btn" id="themeBtn" aria-label="Tema" title="Tema">◐</button>
   </div>
@@ -85,6 +87,13 @@
              accept=".txt,.md,.csv,.json,.log,.srt,.html,.htm" />
       <span data-i18n="filesHint">txt, md, csv, json, log, srt, html — uno o varios.</span>
     </div>
+
+    <div class="file-row">
+      <label class="file-btn" for="pdf" data-i18n="pdfLabel">Redactar PDF</label>
+      <input id="pdf" type="file" accept=".pdf" class="hidden" />
+      <span data-i18n="pdfHint">Censura visual: tacha los datos y borra la metadata.</span>
+    </div>
+    <div class="files-out" id="pdfOut"></div>
 
     <p class="note err hidden" id="anonErr"></p>
 

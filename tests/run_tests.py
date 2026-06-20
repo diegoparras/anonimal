@@ -12,7 +12,7 @@ import sys
 import traceback
 
 MODULES = ["tests.test_engine", "tests.test_api", "tests.test_privacy",
-           "tests.test_rules", "tests.test_quality"]
+           "tests.test_rules", "tests.test_pdf", "tests.test_quality"]
 
 
 def main() -> int:

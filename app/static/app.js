@@ -166,6 +166,43 @@
     });
   }
 
+  // ---- redacción de PDF ----
+  function handlePdf(file) {
+    if (!file) return;
+    var fd = new FormData();
+    fd.append("file", file);
+    fd.append("engine", $("engine").value);
+    var rules = currentRules();
+    if (rules) fd.append("rules_json", JSON.stringify(rules));
+
+    var card = document.createElement("div");
+    card.className = "file-card";
+    card.innerHTML = '<span class="nm"></span><span class="meta"></span>';
+    card.querySelector(".nm").textContent = file.name;
+    card.querySelector(".meta").textContent = t("processing");
+    $("pdfOut").appendChild(card);
+
+    fetch("/redact_pdf", { method: "POST", body: fd })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.detail || ("HTTP " + r.status)); });
+        var n = r.headers.get("X-Redactions") || "?";
+        return r.blob().then(function (b) { return { blob: b, n: n }; });
+      })
+      .then(function (res) {
+        card.querySelector(".meta").textContent = t("pdfDone").replace("{n}", res.n);
+        var dl = document.createElement("button");
+        dl.className = "btn ghost"; dl.textContent = t("download");
+        dl.addEventListener("click", function () {
+          var url = URL.createObjectURL(res.blob);
+          var a = document.createElement("a");
+          a.href = url; a.download = "redactado_" + file.name; a.click();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        });
+        card.appendChild(dl);
+      })
+      .catch(function (e) { card.querySelector(".meta").textContent = e.message || t("errGeneric"); });
+  }
+
   // ---- re-identificar ----
   function reidentify() {
     var err = $("reidErr"); err.classList.add("hidden");
@@ -213,6 +250,7 @@
     });
     $("sendBtn").addEventListener("click", sendToEscriba);
     $("files").addEventListener("change", function (e) { handleFiles(e.target.files); e.target.value = ""; });
+    $("pdf").addEventListener("change", function (e) { handlePdf(e.target.files[0]); e.target.value = ""; });
 
     $("reidBtn").addEventListener("click", reidentify);
     $("reidCopyBtn").addEventListener("click", function () {

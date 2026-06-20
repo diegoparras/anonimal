@@ -19,7 +19,7 @@ def test_custom_se_anonimiza_en_la_salida():
     eng = RuledEngine(BASE, always=["Fenix"])
     text = "El proyecto Fenix arranca"
     out = Anonymizer("pseudo").process(text, eng.detect(text))
-    assert "Fenix" not in out and "CUSTOM_1" in out
+    assert "Fenix" not in out and "«DATO_1»" in out  # CUSTOM -> tipo DATO
 
 
 def test_sin_reglas_no_cambia_la_deteccion():

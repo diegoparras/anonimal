@@ -25,6 +25,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from .engine import formats, get_engine, lite_engine
+from .engine.base import apply_replacements, normalize
+from .engine.labels import placeholder_of
 from .engine.modes import MODES, Anonymizer, deanonymize
 from .engine.rules import RuledEngine
 
@@ -32,7 +34,6 @@ MODE_DEFAULT = os.getenv("ANONIMAL_MODE", "pseudo")
 ENGINE_DEFAULT = os.getenv("ANONIMAL_ENGINE", "auto")   # auto | lite | ml
 MAX_CHARS = int(os.getenv("ANONIMAL_MAX_CHARS", "500000"))
 MAX_PDF_BYTES = int(os.getenv("ANONIMAL_MAX_PDF_BYTES", str(25 * 1024 * 1024)))
-SALT = os.getenv("ANONIMAL_SALT", "anonimal")
 TOKEN = os.getenv("ANONIMAL_TOKEN")  # si esta seteado, se exige en cada request
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -160,15 +161,32 @@ def detect(req: DetectReq):
     return {"engine": used, "spans": [s.as_dict() for s in spans], "count": len(spans)}
 
 
+def _legacy_detect_response(text: str, spans) -> dict:
+    """Contrato LEGACY (compat con el Anonimal embebido): detecta y no decide.
+    Lo dispara `/anonymize` cuando NO viene `mode` -> drop-in para Escriba/Fisherboy."""
+    detected = [{"label": s.label, "start": s.start, "end": s.end, "text": s.text,
+                 "placeholder": placeholder_of(s.label)} for s in spans]
+    redacted = apply_replacements(text, [(s.start, s.end, placeholder_of(s.label)) for s in spans])
+    summary: dict[str, int] = {}
+    for s in spans:
+        summary[s.label] = summary.get(s.label, 0) + 1
+    return {"text": text, "detected_spans": detected,
+            "redacted_text": redacted, "summary": summary}
+
+
 @app.post("/anonymize", dependencies=[Depends(require_token)])
 def anonymize(req: AnonReq):
     _check_size(req.text)
-    mode = _check_mode(req.mode or MODE_DEFAULT)
     engine, used = _pick_engine(req.engine)
     engine = _with_rules(engine, req.rules)
-    anon = Anonymizer(mode, salt=SALT)
-    spans = engine.detect(req.text)
-    output = anon.process(req.text, spans)
+    if req.mode is None:
+        # Sin `mode` -> contrato legacy (detect-only) para consumidores actuales.
+        return _legacy_detect_response(req.text, engine.detect(req.text))
+    mode = _check_mode(req.mode)
+    text = normalize(req.text)
+    anon = Anonymizer(mode)
+    spans = engine.detect(text)
+    output = anon.process(text, spans)
     return {
         "engine": used,
         "mode": mode,
@@ -210,7 +228,7 @@ async def anonymize_file(file: UploadFile = File(...),
             raise HTTPException(status_code=422, detail="rules_json no es JSON valido.") from None
     eng, used = _pick_engine(engine)
     eng = _with_rules(eng, rules)
-    anon = Anonymizer(mode, salt=SALT)
+    anon = Anonymizer(mode)
     fmt, output = formats.anonymize_file(file.filename or "input.txt", content, eng, anon)
     return {
         "filename": file.filename,

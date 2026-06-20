@@ -4,6 +4,28 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [No publicado]
 
+### Fase 3.1 — Paridad de motor + endpoint legacy (compat)
+
+Prepara la migración del ecosistema (Escriba/Fisherboy delegarán en Anonimal)
+sin tocar todavía los repos deployados.
+
+- **Paridad de salida con Escriba** en el motor:
+  - taxonomía de etiquetas (`engine/labels.py`): cada label → tipo legible
+    («PERSONA», «ID», «EMAIL»…) + placeholder estilo OPF (`<PRIVATE_*>`).
+  - tokens pseudo `«TIPO_N»` y anon `<<ANOM_DATA>>` (contratos del ecosistema);
+    `deanonymize` por regex de token (compatible con `restore` de Escriba).
+  - máscara **type-aware** (`j•••@acme.com`, `••••78-6`) y **hash HMAC** estable
+    (`ANON_HASH_KEY`).
+  - **propagación** (un dato detectado se tapa en todas sus apariciones) y
+    **normalización** de guiones de PDF, en `engine/base.finalize`.
+  - reglas: whitelist normalizada (NFC + casefold).
+- **Endpoint legacy (drop-in):** `POST /anonymize` SIN `mode` devuelve el
+  contrato viejo `{detected_spans, redacted_text, summary}` con `placeholder`,
+  igual que el Anonimal embebido → Escriba/Fisherboy pueden apuntar su
+  `ANONIMAL_URL` al nuevo servicio sin cambiar una línea. Con `mode`, responde la
+  API nueva.
+- 35 tests en verde, cobertura 86%.
+
 ### Infra — Fase 2: publicación a GHCR (CI)
 
 - `.github/workflows/release.yml`: al cortar un tag `v*` (o por `workflow_dispatch`)

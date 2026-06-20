@@ -51,23 +51,23 @@ def test_pseudo_consistency_and_roundtrip():
 def test_typed_anon_mask_hash():
     text = "contacto juan@acme.com"
     assert "[EMAIL]" in Anonymizer("typed").process(text, ENG.detect(text))
-    assert "«REDACTADO»" in Anonymizer("anon").process(text, ENG.detect(text))
+    assert "<<ANOM_DATA>>" in Anonymizer("anon").process(text, ENG.detect(text))
     masked = Anonymizer("mask").process(text, ENG.detect(text))
-    assert "j***@***.com" in masked and "juan@acme.com" not in masked
-    a = Anonymizer("hash", salt="s").process(text, ENG.detect(text))
-    b = Anonymizer("hash", salt="s").process(text, ENG.detect(text))
-    assert a == b and "juan@acme.com" not in a                     # determinista, no reversible
+    assert "j•••@acme.com" in masked and "juan@acme.com" not in masked  # mask type-aware
+    a = Anonymizer("hash").process(text, ENG.detect(text))
+    b = Anonymizer("hash").process(text, ENG.detect(text))
+    assert a == b and "juan@acme.com" not in a                     # determinista (HMAC), no reversible
     assert Anonymizer("hash").mapping == {}                        # hash no expone mapa
 
 
 def test_mask_keeps_last_digits():
     masked = Anonymizer("mask").process("tarjeta 4111 1111 1111 1111", ENG.detect("tarjeta 4111 1111 1111 1111"))
-    assert masked.rstrip().endswith("1111") and "*" in masked
+    assert masked.rstrip().endswith("1111") and "•" in masked
 
 
 def test_deanonymize_longest_token_first():
-    mapping = {"EMAIL_1": "a@b.com", "EMAIL_12": "c@d.com"}
-    assert deanonymize("EMAIL_12 y EMAIL_1", mapping) == "c@d.com y a@b.com"
+    mapping = {"«EMAIL_1»": "a@b.com", "«EMAIL_12»": "c@d.com"}
+    assert deanonymize("«EMAIL_12» y «EMAIL_1»", mapping) == "c@d.com y a@b.com"
 
 
 def test_csv_preserves_columns():
@@ -95,3 +95,14 @@ def test_cbu_not_split_into_phone():
     # nada se solapa con el CBU
     assert not any(s.label != "AR_CBU" and not (s.end <= cbu[0].start or s.start >= cbu[0].end)
                    for s in spans)
+
+
+def test_propagacion_marca_todas_las_apariciones():
+    from app.engine.base import Span, finalize
+    out = finalize("Juan y Juan", [Span("PERSON", 0, 4, "Juan")])
+    assert sorted((s.start, s.end) for s in out) == [(0, 4), (7, 11)]
+
+
+def test_normalize_une_guion_de_pdf():
+    from app.engine.base import normalize
+    assert normalize("CUIT 20-\n12345678-6") == "CUIT 20-12345678-6"

@@ -6,7 +6,10 @@ Este contrato "detecta, no decide" es el mismo que el microservicio original.
 """
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+
+_DEHYPHEN_RE = re.compile(r"-[ \t]*\n[ \t]*")
 
 
 @dataclass(frozen=True)
@@ -50,3 +53,33 @@ def apply_replacements(text: str, repls: list[tuple[int, int, str]]) -> str:
     for start, end, rep in sorted(repls, key=lambda r: r[0], reverse=True):
         out = out[:start] + rep + out[end:]
     return out
+
+
+def normalize(text: str) -> str:
+    """Une cortes de línea con guion de PDF ("27-\\n3178" -> "27-3178") para que
+    un salto de línea no parta un CUIT, un email o un identificador."""
+    return _DEHYPHEN_RE.sub("-", text)
+
+
+def propagate(text: str, spans: list[Span]) -> list[Span]:
+    """Si un valor ya fue marcado como PII, lo marca en TODAS sus apariciones.
+    Sube el recall (un nombre detectado en un lugar y no en otro). Guard de
+    longitud (>=4) para no propagar fragmentos triviales."""
+    extra: list[Span] = []
+    seen: set[str] = set()
+    for s in spans:
+        frag = s.text
+        if len(frag.strip()) < 4 or frag in seen:
+            continue
+        seen.add(frag)
+        i = text.find(frag)
+        while i >= 0:
+            extra.append(Span(s.label, i, i + len(frag), frag))
+            i = text.find(frag, i + len(frag))
+    return spans + extra
+
+
+def finalize(text: str, spans: list[Span], priority: dict[str, int] | None = None) -> list[Span]:
+    """Propaga y resuelve solapamientos. Punto único de cierre del pipeline de
+    detección (lo usan los motores y las reglas)."""
+    return resolve_overlaps(propagate(text, spans), priority)

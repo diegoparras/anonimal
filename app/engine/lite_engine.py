@@ -6,7 +6,7 @@ DNI, CUIT, CBU, secrets).
 from __future__ import annotations
 
 from . import common, latam
-from .base import Span, resolve_overlaps
+from .base import Span, finalize
 
 # A mayor numero, mas prioridad cuando dos detecciones se solapan.
 PRIORITY = {
@@ -30,4 +30,4 @@ class LiteEngine:
 
     def detect(self, text: str) -> list[Span]:
         spans = common.detect(text) + latam.detect(text)
-        return resolve_overlaps(spans, PRIORITY)
+        return finalize(text, spans, PRIORITY)

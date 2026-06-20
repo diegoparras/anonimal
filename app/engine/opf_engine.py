@@ -12,7 +12,8 @@ from __future__ import annotations
 import os
 import threading
 
-from .base import Span
+from .base import Span, finalize
+from .labels import PLACEHOLDER_TO_LABEL
 
 
 class OpfEngine:
@@ -61,9 +62,10 @@ class OpfEngine:
         spans: list[Span] = []
         for s in result.get("detected_spans", []):
             start, end = int(s["start"]), int(s["end"])
-            spans.append(Span(str(s.get("label", "PII")).upper(), start, end,
-                              s.get("text", text[start:end])))
-        return spans
+            ph = s.get("placeholder", "")
+            label = PLACEHOLDER_TO_LABEL.get(ph) or str(s.get("label", "PII")).upper()
+            spans.append(Span(label, start, end, s.get("text", text[start:end])))
+        return finalize(text, spans)
 
 
 def is_available() -> bool:

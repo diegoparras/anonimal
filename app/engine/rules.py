@@ -12,23 +12,30 @@ texto y para archivos (formats.py usa cualquier objeto con `.detect`).
 from __future__ import annotations
 
 import re
+import unicodedata
 
-from .base import Span, resolve_overlaps
+from .base import Span, finalize
 from .lite_engine import PRIORITY
 
 _CUSTOM_PRIORITY = {**PRIORITY, "CUSTOM": 100}  # lo del usuario gana siempre
 
 
+def _key(s: str) -> str:
+    """Normaliza para la lista blanca: NFC + casefold (insensible a mayúsculas y
+    a la forma Unicode), así "José" matchea aunque venga "JOSÉ" o descompuesto."""
+    return unicodedata.normalize("NFC", s).strip().casefold()
+
+
 def merge(text: str, spans: list[Span], always: list[str], never: list[str]) -> list[Span]:
-    never_set = {n.strip().lower() for n in never if n.strip()}
-    kept = [s for s in spans if s.text.lower() not in never_set]
+    never_set = {_key(n) for n in never if n.strip()}
+    kept = [s for s in spans if _key(s.text) not in never_set]
     for term in always:
         t = term.strip()
         if not t:
             continue
         for m in re.finditer(re.escape(t), text, re.IGNORECASE):
             kept.append(Span("CUSTOM", m.start(), m.end(), m.group()))
-    return resolve_overlaps(kept, _CUSTOM_PRIORITY)
+    return finalize(text, kept, _CUSTOM_PRIORITY)
 
 
 class RuledEngine:

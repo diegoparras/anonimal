@@ -71,6 +71,13 @@ Escriba/Extracta/Fisherboy; el texto ya convertido llega anonimizable.
 | POST | `/anonymize` | `{text, mode, engine?}` -> `{output, map, summary}` |
 | POST | `/deanonymize` | `{text, map}` -> texto original |
 | POST | `/anonymize_file` | archivo + `mode` -> contenido anonimizado (mismo formato) |
+| POST | `/redact_pdf` | PDF -> PDF con tachado real + metadata borrada |
+
+**Compat legacy (drop-in):** `POST /anonymize` SIN `mode` devuelve el contrato
+del Anonimal embebido (`{detected_spans, redacted_text, summary}` con
+`placeholder` estilo OPF). Así Escriba/Fisherboy apuntan su `ANONIMAL_URL` al
+servicio nuevo sin cambiar código (Fase 3.2), y recién después delegan en la API
+nueva borrando su lógica duplicada (Fase 3.3).
 
 ## Seguridad
 

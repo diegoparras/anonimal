@@ -30,6 +30,15 @@ def test_anonymize_pseudo_and_roundtrip():
     assert back.status_code == 200 and back.json()["output"] == text
 
 
+def test_anonymize_legacy_sin_mode():
+    # Sin `mode` -> contrato legacy (detect-only) para Escriba/Fisherboy.
+    r = client.post("/anonymize", json={"text": "mail juan@acme.com"})
+    assert r.status_code == 200
+    body = r.json()
+    assert "detected_spans" in body and "redacted_text" in body and "output" not in body
+    assert any(s["placeholder"] == "<PRIVATE_EMAIL>" for s in body["detected_spans"])
+
+
 def test_anonymize_invalid_mode():
     r = client.post("/anonymize", json={"text": "x", "mode": "nope"})
     assert r.status_code == 422

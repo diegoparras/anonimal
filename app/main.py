@@ -13,16 +13,19 @@ localhost).
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import os
+import time
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import HTMLResponse, RedirectResponse, Response
 
 from anonimal_lite import formats
 from anonimal_lite.base import apply_replacements, normalize
@@ -36,7 +39,22 @@ MODE_DEFAULT = os.getenv("ANONIMAL_MODE", "pseudo")
 ENGINE_DEFAULT = os.getenv("ANONIMAL_ENGINE", "auto")   # auto | lite | ml
 MAX_CHARS = int(os.getenv("ANONIMAL_MAX_CHARS", "500000"))
 MAX_PDF_BYTES = int(os.getenv("ANONIMAL_MAX_PDF_BYTES", str(25 * 1024 * 1024)))
-TOKEN = os.getenv("ANONIMAL_TOKEN")  # si esta seteado, se exige en cada request
+TOKEN = os.getenv("ANONIMAL_TOKEN")  # token de SERVICIO (Escriba/Fisherboy por red interna)
+
+# Login de NAVEGADOR (para exponerlo en la web). Independiente del token de servicio:
+# Escriba sigue llamando con el token; las personas entran con usuario/clave.
+AUTH_ENABLED = os.getenv("ANONIMAL_AUTH_ENABLED", "false").lower() == "true"
+AUTH_USER = os.getenv("ANONIMAL_USER", "")
+AUTH_PASSWORD = os.getenv("ANONIMAL_PASSWORD", "")
+SESSION_SECRET = os.getenv("ANONIMAL_SESSION_SECRET", "")
+COOKIE_SECURE = os.getenv("ANONIMAL_COOKIE_SECURE", "true").lower() == "true"
+SESSION_TTL = int(os.getenv("ANONIMAL_SESSION_TTL_HOURS", "12")) * 3600
+COOKIE_NAME = "anonimal_auth"
+if AUTH_ENABLED and not (AUTH_USER and AUTH_PASSWORD and SESSION_SECRET):
+    raise RuntimeError(
+        "ANONIMAL_AUTH_ENABLED=true requiere ANONIMAL_USER, ANONIMAL_PASSWORD y ANONIMAL_SESSION_SECRET."
+    )
+_login_fails: dict[str, dict] = {}   # rate-limit de login por IP (en memoria)
 
 STATIC_DIR = Path(__file__).parent / "static"
 
@@ -63,16 +81,66 @@ async def security_headers(request: Request, call_next):
     return resp
 
 
-def require_token(
-    authorization: str | None = Header(None),
-    x_anonimal_token: str | None = Header(None),
-) -> None:
-    if not TOKEN:
-        return
-    supplied = x_anonimal_token
-    if not supplied and authorization and authorization.lower().startswith("bearer "):
-        supplied = authorization.split(" ", 1)[1]
-    if supplied != TOKEN:
+@app.middleware("http")
+async def auth_gate(request: Request, call_next):
+    # Solo la UI (página + estáticos) exige sesión de navegador. /login, /logout,
+    # /health y la API quedan fuera: la API se gatea con require_auth (token O sesión).
+    if AUTH_ENABLED:
+        path = request.url.path
+        if (path == "/" or path.startswith("/static")) and not _cookie_valid(request.cookies.get(COOKIE_NAME)):
+            return RedirectResponse("/login", status_code=302)
+    return await call_next(request)
+
+
+def _sign(value: str) -> str:
+    sig = hmac.new(SESSION_SECRET.encode(), value.encode(), hashlib.sha256).hexdigest()
+    return f"{value}.{sig}"
+
+
+def _make_cookie() -> str:
+    return _sign(str(int(time.time()) + SESSION_TTL))
+
+
+def _cookie_valid(raw: str | None) -> bool:
+    if not raw or "." not in raw:
+        return False
+    value, _, sig = raw.rpartition(".")
+    expected = hmac.new(SESSION_SECRET.encode(), value.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(sig, expected):
+        return False
+    try:
+        return int(value) > int(time.time())
+    except ValueError:
+        return False
+
+
+def _password_ok(supplied: str) -> bool:
+    def h(s: str) -> bytes:
+        return hashlib.sha256((s or "").encode()).digest()
+    return hmac.compare_digest(h(supplied), h(AUTH_PASSWORD))
+
+
+def _token_supplied(request: Request) -> str | None:
+    tok = request.headers.get("x-anonimal-token")
+    if not tok:
+        authz = request.headers.get("authorization", "")
+        if authz.lower().startswith("bearer "):
+            tok = authz.split(" ", 1)[1]
+    return tok
+
+
+def require_auth(request: Request) -> None:
+    """Gate de la API: pasa con el TOKEN de servicio (Escriba) O con sesión de
+    navegador (login). Sin token ni auth configurados → abierto (modo local)."""
+    if TOKEN:
+        tok = _token_supplied(request)
+        if tok and hmac.compare_digest(tok, TOKEN):
+            return
+    if AUTH_ENABLED:
+        if _cookie_valid(request.cookies.get(COOKIE_NAME)):
+            return
+        raise HTTPException(status_code=401, detail="No autenticado.")
+    if TOKEN:
         raise HTTPException(status_code=401, detail="Token invalido o ausente.")
 
 
@@ -155,7 +223,7 @@ def health():
     }
 
 
-@app.post("/detect", dependencies=[Depends(require_token)])
+@app.post("/detect", dependencies=[Depends(require_auth)])
 def detect(req: DetectReq):
     _check_size(req.text)
     engine, used = _pick_engine(req.engine)
@@ -177,7 +245,7 @@ def _legacy_detect_response(text: str, spans) -> dict:
             "redacted_text": redacted, "summary": summary}
 
 
-@app.post("/anonymize", dependencies=[Depends(require_token)])
+@app.post("/anonymize", dependencies=[Depends(require_auth)])
 def anonymize(req: AnonReq):
     _check_size(req.text)
     engine, used = _pick_engine(req.engine)
@@ -201,14 +269,14 @@ def anonymize(req: AnonReq):
     }
 
 
-@app.post("/deanonymize", dependencies=[Depends(require_token)])
+@app.post("/deanonymize", dependencies=[Depends(require_auth)])
 def reidentify(req: DeanonReq):
     if not req.map:
         raise HTTPException(status_code=422, detail="Falta el mapa de reversion.")
     return {"output": deanonymize(req.text, req.map)}
 
 
-@app.post("/anonymize_file", dependencies=[Depends(require_token)])
+@app.post("/anonymize_file", dependencies=[Depends(require_auth)])
 async def anonymize_file(file: UploadFile = File(...),
                          mode: str = Form(MODE_DEFAULT),
                          engine: str | None = Form(None),
@@ -245,7 +313,7 @@ async def anonymize_file(file: UploadFile = File(...),
     }
 
 
-@app.post("/redact_pdf", dependencies=[Depends(require_token)])
+@app.post("/redact_pdf", dependencies=[Depends(require_auth)])
 async def redact_pdf(file: UploadFile = File(...),
                      engine: str | None = Form(None),
                      rules_json: str = Form("")):
@@ -280,6 +348,86 @@ async def redact_pdf(file: UploadFile = File(...),
             "X-Redactions": str(count),
         },
     )
+
+
+_FAVI = (
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E"
+    "%3Crect width='64' height='64' rx='15' fill='%234a4e7c'/%3E"
+    "%3Cpath d='M12 26C12 22 16 21 20 21L44 21C48 21 52 22 52 26C52 32 50 40 42 40C36 40 34 35 32 35C30 35 28 40 22 40C14 40 12 32 12 26Z' fill='%23fff'/%3E"
+    "%3Cellipse cx='23' cy='29' rx='4' ry='3.1' fill='%234a4e7c'/%3E"
+    "%3Cellipse cx='41' cy='29' rx='4' ry='3.1' fill='%234a4e7c'/%3E%3C/svg%3E"
+)
+
+
+def _login_page(err: str = "") -> str:
+    msg = f'<p class="err">{err}</p>' if err else ""
+    return (
+        '<!doctype html><html lang="es"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        "<title>Anonimal — Ingresar</title>"
+        f'<link rel="icon" href="{_FAVI}"><style>'
+        ":root{--bg:#f5f6fa;--card:#fff;--ink:#1a1c2b;--muted:#6b7080;--line:rgba(20,22,40,.12);--accent:#4a4e7c}"
+        "@media(prefers-color-scheme:dark){:root{--bg:#0c0d14;--card:#14161f;--ink:#e9eaf2;--muted:#9498ad;--line:rgba(255,255,255,.12);--accent:#8a8fd0}}"
+        "*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);"
+        "color:var(--ink);font:15px/1.5 'Inter',system-ui,-apple-system,'Segoe UI',sans-serif}"
+        ".card{width:min(380px,92vw);background:var(--card);border:1px solid var(--line);border-radius:18px;"
+        "padding:34px 30px;box-shadow:0 30px 80px -30px rgba(0,0,0,.4)}"
+        ".logo{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700;font-size:21px;letter-spacing:-.02em}"
+        ".logo svg{width:30px;height:30px}.sub{text-align:center;color:var(--muted);font-size:13px;margin:4px 0 22px}"
+        "form{display:flex;flex-direction:column;gap:11px}"
+        "input{font:inherit;padding:11px 13px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}"
+        "input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent)}"
+        "button{font:inherit;font-weight:600;margin-top:4px;padding:11px;border:0;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer}"
+        ".err{background:color-mix(in srgb,#cf222e 12%,transparent);color:#cf222e;font-size:13px;padding:8px 11px;border-radius:9px;margin:0 0 12px;text-align:center}"
+        "</style></head><body><div class=\"card\">"
+        '<div class="logo"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">'
+        '<rect width="64" height="64" rx="15" fill="#4a4e7c"/>'
+        '<path d="M12 26 C12 22 16 21 20 21 L44 21 C48 21 52 22 52 26 C52 32 50 40 42 40 C36 40 34 35 32 35 C30 35 28 40 22 40 C14 40 12 32 12 26 Z" fill="#fff"/>'
+        '<ellipse cx="23" cy="29" rx="4" ry="3.1" fill="#4a4e7c" transform="rotate(-12 23 29)"/>'
+        '<ellipse cx="41" cy="29" rx="4" ry="3.1" fill="#4a4e7c" transform="rotate(12 41 29)"/>'
+        "</svg>Anonimal</div>"
+        '<p class="sub">Anonimizador de PII</p>'
+        f"{msg}"
+        '<form method="post" action="/login">'
+        '<input name="user" placeholder="Usuario" autocomplete="username" autofocus>'
+        '<input name="password" type="password" placeholder="Contraseña" autocomplete="current-password">'
+        "<button type=\"submit\">Entrar</button>"
+        "</form></div></body></html>"
+    )
+
+
+@app.get("/login", include_in_schema=False)
+def login_get(request: Request, e: str = ""):
+    if not AUTH_ENABLED or _cookie_valid(request.cookies.get(COOKIE_NAME)):
+        return RedirectResponse("/", status_code=302)
+    errs = {"1": "Usuario o contraseña incorrectos.", "2": "Demasiados intentos. Esperá un minuto."}
+    return HTMLResponse(_login_page(errs.get(e, "")))
+
+
+@app.post("/login", include_in_schema=False)
+def login_post(request: Request, user: str = Form(""), password: str = Form("")):
+    if not AUTH_ENABLED:
+        return RedirectResponse("/", status_code=302)
+    ip = request.client.host if request.client else "?"
+    now = time.time()
+    f = _login_fails.get(ip)
+    if f and f["n"] >= 8 and now - f["t"] < 60:
+        return RedirectResponse("/login?e=2", status_code=302)
+    if user == AUTH_USER and _password_ok(password):
+        _login_fails.pop(ip, None)
+        resp = RedirectResponse("/", status_code=302)
+        resp.set_cookie(COOKIE_NAME, _make_cookie(), httponly=True,
+                        secure=COOKIE_SECURE, samesite="lax", max_age=SESSION_TTL)
+        return resp
+    _login_fails[ip] = {"n": (f["n"] + 1 if f and now - f["t"] < 60 else 1), "t": now}
+    return RedirectResponse("/login?e=1", status_code=302)
+
+
+@app.get("/logout", include_in_schema=False)
+def logout():
+    resp = RedirectResponse("/login", status_code=302)
+    resp.delete_cookie(COOKIE_NAME)
+    return resp
 
 
 @app.get("/", include_in_schema=False)

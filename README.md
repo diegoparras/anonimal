@@ -73,8 +73,13 @@ docker compose up anonimal                           # -> http://localhost:8920
 # Desarrollo local (motor lite, sin modelo)
 pip install -r requirements.txt
 uvicorn app.main:app --reload
-python -m tests.run_tests                            # 18 tests
+python -m tests.run_tests                            # tests del motor + API
 ```
+
+Las imágenes se publican solas: al cortar un tag `v*`, el CI
+(`.github/workflows/release.yml`) construye y sube a GHCR la **full**
+(`ghcr.io/diegoparras/anonimal:latest`) y la **lite** (`:lite`), con smoke y
+Trivy como gate previo.
 
 Ejemplo:
 

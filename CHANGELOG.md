@@ -4,6 +4,16 @@ Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
 ## [No publicado]
 
+### Infra — Fase 2: publicación a GHCR (CI)
+
+- `.github/workflows/release.yml`: al cortar un tag `v*` (o por `workflow_dispatch`)
+  construye y **publica** a `ghcr.io/diegoparras/anonimal` la imagen **full**
+  (`:latest`, `:<versión>`) y la **lite** (`:lite`, `:<versión>-lite`).
+- Gate antes de publicar: smoke del contenedor (lite) + **Trivy** sobre cada
+  imagen; si hay HIGH/CRITICAL no se pushea.
+- `ci.yml` sigue como gate de PR (no publica). Versionado: el tag lo corta Diego.
+- Pendiente (manual de Diego): hacer **público** el package en GHCR.
+
 ### 0.2.0 — Fase 1: UI web
 
 Interfaz web servida por FastAPI, con el sistema de diseño del ecosistema

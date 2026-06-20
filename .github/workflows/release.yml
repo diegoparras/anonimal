@@ -1,0 +1,115 @@
+name: release
+
+# Publica las imagenes a GHCR cuando Diego corta un tag v* (versionado-conservador).
+# workflow_dispatch permite una corrida manual (empuja solo las etiquetas flotantes).
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+env:
+  IMAGE: ghcr.io/diegoparras/anonimal
+
+jobs:
+  lite:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Version
+        id: v
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "ver=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ver=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build imagen lite
+        run: docker build -f Dockerfile.lite -t "$IMAGE:lite" .
+
+      - name: Smoke del contenedor
+        run: |
+          docker run -d --name anonimal_smoke -p 8920:8000 "$IMAGE:lite"
+          pip install httpx
+          SMOKE_URL=http://127.0.0.1:8920 python scripts/smoke.py
+          docker rm -f anonimal_smoke
+
+      - name: Trivy (gate antes de publicar)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: image
+          image-ref: ${{ env.IMAGE }}:lite
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Push lite
+        run: |
+          docker push "$IMAGE:lite"
+          if [ -n "${{ steps.v.outputs.ver }}" ]; then
+            docker tag "$IMAGE:lite" "$IMAGE:${{ steps.v.outputs.ver }}-lite"
+            docker push "$IMAGE:${{ steps.v.outputs.ver }}-lite"
+          fi
+
+  full:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Liberar espacio en disco (la imagen full es pesada)
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/lib/android /opt/hostedtoolcache/CodeQL
+          df -h
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Version
+        id: v
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "ver=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ver=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build imagen full (ML)
+        run: docker build -t "$IMAGE:latest" .
+
+      - name: Trivy (gate antes de publicar)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: image
+          image-ref: ${{ env.IMAGE }}:latest
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Push full
+        run: |
+          docker push "$IMAGE:latest"
+          if [ -n "${{ steps.v.outputs.ver }}" ]; then
+            docker tag "$IMAGE:latest" "$IMAGE:${{ steps.v.outputs.ver }}"
+            docker push "$IMAGE:${{ steps.v.outputs.ver }}"
+          fi

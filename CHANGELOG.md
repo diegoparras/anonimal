@@ -2,6 +2,19 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
+## [0.4.0] — Librería + componente compartidos
+
+- **`anonimal_lite` como librería instalable** (stdlib puro, `pip install
+  "anonimal-lite @ git+…@v0.4.0"`): el motor lite se reparte para que cada
+  satélite lo use como fallback standalone. El servicio (FastAPI/OPF/PDF) queda
+  en `app/`.
+- **Reglas con patrones regex** (superset de Escriba): `{regex, placeholder}` +
+  always/never; `re2` opcional anti-ReDoS.
+- **Componente JS compartido** (`anonimal_lite/ui/anon-options.js`, viaja en el
+  paquete): opciones de anonimización idénticas para los 3 productos (modo +
+  indicador básico/completo + reglas). `ui_path()` lo localiza para servirlo.
+- Endpoint legacy de compat (`/anonymize` sin `mode`) ya en producción.
+
 ## [No publicado]
 
 ### Fase 3.1 — Paridad de motor + endpoint legacy (compat)

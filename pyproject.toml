@@ -1,5 +1,26 @@
-# Configuracion de las herramientas de calidad y seguridad de Anonimal.
-# (Solo config de tooling: no cambia el empaquetado, que sigue por requirements.txt.)
+# anonimal-lite: el motor liviano (regex, stdlib puro) publicado como librería
+# instalable, para que cada satélite del ecosistema lo bundlee como fallback
+# standalone. El SERVICIO (FastAPI + OPF + PDF) vive en app/ y se corre aparte
+# (no se instala como paquete; sus deps están en requirements.txt).
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "anonimal-lite"
+version = "0.3.0"
+description = "Motor de anonimización de PII liviano (regex + LATAM, stdlib puro): fallback standalone del ecosistema Anonimal."
+requires-python = ">=3.11"
+dependencies = []                      # stdlib puro: cero dependencias
+license = { text = "Apache-2.0" }
+authors = [{ name = "Diego Parras" }]
+
+[project.urls]
+Homepage = "https://github.com/diegoparras/anonimal"
+
+[tool.setuptools]
+packages = ["anonimal_lite"]           # solo la librería; app/ no se empaqueta
 
 [tool.ruff]
 target-version = "py311"
@@ -32,7 +53,7 @@ extend-immutable-calls = [
 
 [tool.mypy]
 python_version = "3.11"
-files = ["app"]
+files = ["app", "anonimal_lite"]
 
 [[tool.mypy.overrides]]
 # `opf` (opcional) y `fitz`/PyMuPDF no traen stubs de tipos.
@@ -40,20 +61,20 @@ module = ["opf.*", "fitz", "fitz.*"]
 ignore_missing_imports = true
 
 [tool.coverage.run]
-source = ["app"]
+source = ["app", "anonimal_lite"]
 # El wrapper ML solo se ejercita con el modelo cargado (no en CI/local sin OPF).
-omit = ["app/engine/opf_engine.py"]
+omit = ["app/opf_engine.py"]
 
 [tool.coverage.report]
 show_missing = true
 fail_under = 85
 
 [tool.bandit]
-# bandit -c pyproject.toml -r app
+# bandit -c pyproject.toml -r app anonimal_lite
 exclude_dirs = ["tests", "brand", ".venv"]
 
 [tool.vulture]
-paths = ["app"]
+paths = ["app", "anonimal_lite"]
 min_confidence = 70
 exclude = ["brand", ".venv"]
 # Los handlers de FastAPI se usan via decorador (no por nombre) -> no son dead code.

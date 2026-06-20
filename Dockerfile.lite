@@ -24,6 +24,7 @@ RUN pip install --upgrade pip setuptools wheel \
 RUN useradd -m -u 10001 anon
 USER anon
 
+COPY anonimal_lite/ ./anonimal_lite/
 COPY app/ ./app/
 
 EXPOSE 8000

@@ -24,11 +24,13 @@ from pydantic import BaseModel, Field
 from starlette.requests import Request
 from starlette.responses import Response
 
-from .engine import formats, get_engine, lite_engine
-from .engine.base import apply_replacements, normalize
-from .engine.labels import placeholder_of
-from .engine.modes import MODES, Anonymizer, deanonymize
-from .engine.rules import RuledEngine
+from anonimal_lite import formats
+from anonimal_lite.base import apply_replacements, normalize
+from anonimal_lite.labels import placeholder_of
+from anonimal_lite.modes import MODES, Anonymizer, deanonymize
+from anonimal_lite.rules import RuledEngine
+
+from .engines import get_engine, lite_engine
 
 MODE_DEFAULT = os.getenv("ANONIMAL_MODE", "pseudo")
 ENGINE_DEFAULT = os.getenv("ANONIMAL_ENGINE", "auto")   # auto | lite | ml

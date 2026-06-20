@@ -1,7 +1,7 @@
 """Reglas propias del usuario (RuledEngine): 'always' agrega, 'never' excluye."""
-from app.engine.lite_engine import LiteEngine
-from app.engine.modes import Anonymizer
-from app.engine.rules import RuledEngine
+from anonimal_lite.lite_engine import LiteEngine
+from anonimal_lite.modes import Anonymizer
+from anonimal_lite.rules import RuledEngine
 
 BASE = LiteEngine()
 

@@ -2,7 +2,7 @@
 metadata se borra. SKIP si fitz no está instalado."""
 import importlib.util
 
-from app.engine.lite_engine import LiteEngine
+from anonimal_lite.lite_engine import LiteEngine
 from app.pdf import redact_pdf_bytes
 
 HAVE_FITZ = importlib.util.find_spec("fitz") is not None

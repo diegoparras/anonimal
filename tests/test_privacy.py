@@ -5,8 +5,8 @@ salida, en NINGUN modo. Es la red de seguridad del producto: que Anonimal nunca
 El motor lite ve PII estructurada (mail, telefono, tarjeta, DNI, CUIT, CBU, IP);
 nombres/direcciones libres son del motor ML y no se prueban aca.
 """
-from app.engine.lite_engine import LiteEngine
-from app.engine.modes import MODES, Anonymizer, deanonymize
+from anonimal_lite.lite_engine import LiteEngine
+from anonimal_lite.modes import MODES, Anonymizer, deanonymize
 
 ENG = LiteEngine()
 

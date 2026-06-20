@@ -12,8 +12,8 @@ from __future__ import annotations
 import os
 import threading
 
-from .base import Span, finalize
-from .labels import PLACEHOLDER_TO_LABEL
+from anonimal_lite.base import Span, finalize
+from anonimal_lite.labels import PLACEHOLDER_TO_LABEL
 
 
 class OpfEngine:

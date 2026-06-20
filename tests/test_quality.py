@@ -48,7 +48,7 @@ def test_vulture_sin_dead_code():
 def test_bandit_sin_hallazgos_de_seguridad():
     if not _have("bandit"):
         return "SKIP: bandit no instalado"
-    r = _run(["bandit", "-c", "pyproject.toml", "-r", "app", "-q"])
+    r = _run(["bandit", "-c", "pyproject.toml", "-r", "app", "anonimal_lite", "-q"])
     assert r.returncode == 0, f"bandit encontro problemas:\n{r.stdout}\n{r.stderr}"
 
 
@@ -66,7 +66,7 @@ def test_pip_audit_sin_vulnerabilidades():
 def test_mypy_sin_errores_de_tipos():
     if not _have("mypy"):
         return "SKIP: mypy no instalado"
-    r = _run(["mypy", "app"])
+    r = _run(["mypy"])  # usa files=[app, anonimal_lite] del pyproject
     assert r.returncode == 0, f"mypy encontro errores:\n{r.stdout}\n{r.stderr}"
 
 

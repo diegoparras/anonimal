@@ -21,9 +21,9 @@ jobs:
       - name: Vulture (dead code)
         run: vulture
       - name: Mypy (tipos)
-        run: mypy app
+        run: mypy
       - name: Bandit (auditoria de seguridad - SAST)
-        run: bandit -c pyproject.toml -r app -q
+        run: bandit -c pyproject.toml -r app anonimal_lite -q
       - name: pip-audit (vulnerabilidades en dependencias)
         run: pip-audit -r requirements.txt
       - name: detect-secrets (no filtrar secretos)

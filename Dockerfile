@@ -41,6 +41,7 @@ RUN for i in 1 2 3 4 5; do \
  && python -c "from opf import OPF; OPF(device='cpu', output_mode='typed').redact('warm-up')" \
  && test -d /home/anon/.opf/privacy_filter
 
+COPY anonimal_lite/ ./anonimal_lite/
 COPY app/ ./app/
 
 EXPOSE 8000

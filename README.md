@@ -84,6 +84,26 @@ Trivy como gate previo.
 **Despliegue completo** (Docker · Compose · EasyPanel · detrás de Escriba):
 ver **[docs/DEPLOY.md](docs/DEPLOY.md)**.
 
+## Como librería (`anonimal_lite`) — fallback de los satélites
+
+El motor **liviano** (regex + LATAM, **stdlib puro, sin FastAPI ni torch**) se
+publica como librería instalable, para que cada satélite del ecosistema lo
+bundlee como **fallback standalone** (anonimizar sin depender del servicio):
+
+```bash
+pip install "anonimal-lite @ git+https://github.com/diegoparras/anonimal.git@v0.3.0"
+```
+
+```python
+from anonimal_lite import LiteEngine, Anonymizer, deanonymize
+eng = LiteEngine()
+out = Anonymizer("pseudo").process(text, eng.detect(text))
+```
+
+Patrón del ecosistema: si la app tiene `ANONIMAL_URL`, usa el **servicio** (ML
+completo); si no, cae a `anonimal_lite` (regex). Un solo lugar para mantener el
+anonimato; el básico también sale de acá.
+
 Ejemplo:
 
 ```bash

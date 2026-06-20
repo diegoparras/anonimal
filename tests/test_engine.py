@@ -4,9 +4,9 @@ import csv
 import io
 import json
 
-from app.engine import formats
-from app.engine.lite_engine import LiteEngine
-from app.engine.modes import Anonymizer, deanonymize
+from anonimal_lite import formats
+from anonimal_lite.lite_engine import LiteEngine
+from anonimal_lite.modes import Anonymizer, deanonymize
 
 ENG = LiteEngine()
 
@@ -98,11 +98,11 @@ def test_cbu_not_split_into_phone():
 
 
 def test_propagacion_marca_todas_las_apariciones():
-    from app.engine.base import Span, finalize
+    from anonimal_lite.base import Span, finalize
     out = finalize("Juan y Juan", [Span("PERSON", 0, 4, "Juan")])
     assert sorted((s.start, s.end) for s in out) == [(0, 4), (7, 11)]
 
 
 def test_normalize_une_guion_de_pdf():
-    from app.engine.base import normalize
+    from anonimal_lite.base import normalize
     assert normalize("CUIT 20-\n12345678-6") == "CUIT 20-12345678-6"

@@ -9,7 +9,13 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     OPF_DEVICE=cpu \
-    ANONIMAL_ENGINE=auto
+    ANONIMAL_ENGINE=auto \
+    # RAM: cap de arenas de glibc (torch en CPU fragmenta el heap y dispara el RSS)
+    # + threads acotados. Bajan el RSS sin tocar el modelo. Overridables en el panel.
+    MALLOC_ARENA_MAX=2 \
+    OMP_NUM_THREADS=4 \
+    # Cuantización int8 del modelo OPF al cargar (ver opf_engine). Apagable con =0.
+    ANONIMAL_QUANTIZE=1
 
 WORKDIR /app
 

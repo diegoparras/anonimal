@@ -9,11 +9,38 @@ proteger la RAM.
 """
 from __future__ import annotations
 
+import logging
 import os
 import threading
 
 from anonimal_lite.base import Span, finalize
 from anonimal_lite.labels import PLACEHOLDER_TO_LABEL
+
+log = logging.getLogger("anonimal.opf")
+
+
+def _maybe_quantize(opf) -> None:
+    """Cuantización dinámica int8 de las capas Linear del modelo OPF: en CPU baja
+    la RAM (los pesos Linear pasan de fp32 a int8) y suele acelerar la inferencia.
+    Apagable con ANONIMAL_QUANTIZE=0. Si algo falla, sigue con el modelo fp32 (el
+    arranque NUNCA se rompe por esto). El modelo vive en opf._runtime.model."""
+    if os.getenv("ANONIMAL_QUANTIZE", "1").strip().lower() in ("0", "false", "no"):
+        return
+    try:
+        import torch
+        try:
+            from torch.ao.quantization import quantize_dynamic
+        except Exception:
+            from torch.quantization import quantize_dynamic
+        runtime = getattr(opf, "_runtime", None)
+        model = getattr(runtime, "model", None)
+        if runtime is None or not isinstance(model, torch.nn.Module):
+            log.warning("Cuantización omitida: no encontré opf._runtime.model (torch.nn.Module).")
+            return
+        runtime.model = quantize_dynamic(model, {torch.nn.Linear}, dtype=torch.qint8)
+        log.info("OPF: modelo cuantizado a int8 (capas Linear).")
+    except Exception as e:  # nunca romper el arranque por la cuantización
+        log.warning("Cuantización int8 no aplicada (sigo en fp32): %s", e)
 
 
 class OpfEngine:
@@ -41,7 +68,8 @@ class OpfEngine:
                     from opf._common.checkpoint_download import ensure_default_checkpoint
                     ensure_default_checkpoint()
                 opf = OPF(device=self.device, output_mode="typed")
-                opf.redact("warm-up")           # primer forward pass
+                _maybe_quantize(opf)            # int8 (Linear) para bajar la RAM en CPU
+                opf.redact("warm-up")           # primer forward pass (ya cuantizado)
                 self._opf = opf
             except Exception as e:
                 self._error = str(e)

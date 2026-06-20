@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
+## [0.5.1] — Menos RAM (imagen full)
+
+- **Tweaks de memoria** en la imagen full: `MALLOC_ARENA_MAX=2` (la fragmentación de
+  glibc con torch en CPU dispara el RSS) + `OMP_NUM_THREADS=4`. Bajan el RSS sin tocar
+  el modelo ni la precisión. Overridables en el panel.
+- **Cuantización int8 dinámica** (opcional, `ANONIMAL_QUANTIZE=1` por default) de las
+  capas `Linear` del modelo OPF (`opf._runtime.model`): menos RAM y suele acelerar la
+  inferencia en CPU. Con **fallback**: si no se puede cuantizar, arranca en fp32 (el boot
+  nunca se rompe). Apagable con `ANONIMAL_QUANTIZE=0` sin rebuild.
+
 ## [0.5.0] — Login de navegador + nota de privacidad
 
 - **Login de navegador** (sesión por cookie HMAC firmada, stateless, stdlib pura)

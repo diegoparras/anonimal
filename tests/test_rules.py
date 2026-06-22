@@ -40,3 +40,17 @@ def test_regex_invalido_se_ignora():
     eng = RuledEngine(BASE, patterns=[{"regex": "([a-z", "placeholder": "X"}])
     spans = eng.detect("texto normal sin pii")
     assert isinstance(spans, list)
+
+
+def test_regex_redos_no_cuelga():
+    """ReDoS: un patrón catastrófico del usuario no debe colgar el worker (auditoría 2026-06).
+
+    El motor seguro (re2 lineal, o `regex` con timeout) acota el backtracking; el
+    patrón se saltea fail-safe en vez de explotar."""
+    import time
+    eng = RuledEngine(BASE, patterns=[{"regex": r"(a|a)+$", "placeholder": "X"}])
+    evil = "a" * 60 + "!"
+    t = time.time()
+    spans = eng.detect(evil)            # no debe colgar
+    assert isinstance(spans, list)
+    assert time.time() - t < 5.0        # acotado (timeout 1s/patrón + margen)

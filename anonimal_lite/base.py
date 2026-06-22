@@ -6,6 +6,7 @@ Este contrato "detecta, no decide" es el mismo que el microservicio original.
 """
 from __future__ import annotations
 
+import bisect
 import re
 from dataclasses import dataclass
 
@@ -33,15 +34,26 @@ def resolve_overlaps(spans: list[Span], priority: dict[str, int] | None = None) 
     def rank(s: Span):
         return (-(s.end - s.start), -priority.get(s.label, 0), s.start)
 
+    # Aceptación voraz por rank, pero la prueba de solape es O(log n) en vez de O(n):
+    # mantenemos los intervalos aceptados ORDENADOS por inicio (starts/ends paralelos)
+    # y, como nunca se solapan entre sí, basta mirar los dos vecinos del punto de
+    # inserción. El barrido lineal anterior era O(n^2) -> DoS algorítmico. Ver auditoría 2026-06.
     chosen: list[Span] = []
-    taken: list[tuple[int, int]] = []
+    starts: list[int] = []
+    ends: list[int] = []
     for s in sorted(spans, key=rank):
         if s.end <= s.start:
             continue
-        if any(not (s.end <= a or s.start >= b) for a, b in taken):
+        i = bisect.bisect_right(starts, s.start)
+        # vecino izquierdo (start <= s.start): solapa si su fin pasa s.start
+        if i > 0 and ends[i - 1] > s.start:
+            continue
+        # vecino derecho (start > s.start): solapa si empieza antes de s.end
+        if i < len(starts) and starts[i] < s.end:
             continue
         chosen.append(s)
-        taken.append((s.start, s.end))
+        starts.insert(i, s.start)
+        ends.insert(i, s.end)
     chosen.sort(key=lambda s: s.start)
     return chosen
 

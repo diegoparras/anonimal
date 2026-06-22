@@ -23,10 +23,24 @@ from .base import Span, finalize
 from .labels import type_of
 from .lite_engine import PRIORITY
 
-try:  # ReDoS-safe si está disponible (opcional, no es dependencia de la lib)
-    import re2 as _rx  # type: ignore
+# Motor para los patrones DEL USUARIO (texto no confiable -> riesgo ReDoS):
+#   1) re2: lineal, inmune a backtracking catastrófico (ideal si está instalado).
+#   2) regex: permite `timeout=` que corta el backtracking catastrófico.
+# Si no hay NINGUNO, los patrones custom NO se ejecutan sobre `re` de stdlib (sería
+# ReDoS) — se ignoran fail-safe. Así la lib sigue siendo stdlib-pura por defecto; el
+# servicio Anonimal trae `regex` en requirements para habilitar la feature. Auditoría 2026-06.
+try:
+    import re2 as _user_rx  # type: ignore
+    _USER_ENGINE = "re2"
 except ImportError:
-    _rx = re  # fallback stdlib
+    try:
+        import regex as _user_rx  # type: ignore
+        _USER_ENGINE = "regex"
+    except ImportError:
+        _user_rx = None
+        _USER_ENGINE = None
+
+_USER_RX_TIMEOUT = 1.0      # s por patrón (solo motor `regex`): cota dura anti-ReDoS
 
 _CUSTOM_PRIORITY = {**PRIORITY, "CUSTOM": 100}  # lo del usuario gana siempre
 _MAX_PATTERNS = 50          # tope anti-abuso
@@ -50,6 +64,8 @@ def _label_for(placeholder: str) -> str:
 
 
 def _compile_patterns(patterns):
+    if _user_rx is None:  # sin motor seguro no corremos regex de usuario (anti-ReDoS)
+        return []
     compiled = []
     for p in (patterns or [])[:_MAX_PATTERNS]:
         if not isinstance(p, dict):
@@ -59,10 +75,18 @@ def _compile_patterns(patterns):
             continue
         label = _label_for(p.get("placeholder") or p.get("label") or "")
         try:
-            compiled.append((_rx.compile(rx), label))
+            compiled.append((_user_rx.compile(rx), label))
         except Exception:  # nosec B112 - regex inválida del usuario: se ignora, no rompe
             continue
     return compiled
+
+
+def _user_finditer(pat, text):
+    """finditer del patrón de usuario con cota anti-ReDoS según el motor."""
+    if _USER_ENGINE == "regex":
+        # timeout duro: corta el backtracking catastrófico (re2 no lo necesita: es lineal).
+        return list(pat.finditer(text, timeout=_USER_RX_TIMEOUT))
+    return list(pat.finditer(text))
 
 
 def merge(text: str, spans: list[Span], *, always=None, never=None, patterns=None) -> list[Span]:
@@ -75,7 +99,11 @@ def merge(text: str, spans: list[Span], *, always=None, never=None, patterns=Non
         for m in re.finditer(re.escape(t), text, re.IGNORECASE):
             kept.append(Span("CUSTOM", m.start(), m.end(), m.group()))
     for rx, label in _compile_patterns(patterns):
-        for m in rx.finditer(text):
+        try:
+            matches = _user_finditer(rx, text)
+        except TimeoutError:
+            continue  # patrón demasiado costoso: fail-safe, no cuelga el worker
+        for m in matches:
             if m.end() > m.start():
                 kept.append(Span(label, m.start(), m.end(), m.group()))
     return finalize(text, kept, _CUSTOM_PRIORITY)

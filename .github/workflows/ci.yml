@@ -32,7 +32,7 @@ jobs:
       - name: Tests + cobertura (umbral en pyproject.toml)
         run: |
           coverage run -m pytest -q tests/test_engine.py tests/test_api.py \
-            tests/test_privacy.py tests/test_rules.py tests/test_pdf.py
+            tests/test_api_coverage.py tests/test_privacy.py tests/test_rules.py tests/test_pdf.py
           coverage report
 
       - name: Trivy (vulns + secrets de las dependencias del repo)

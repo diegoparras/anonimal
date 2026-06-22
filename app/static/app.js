@@ -122,12 +122,34 @@
       source: "anonimal", mime: "text/markdown", content: last.output,
       ts: Date.now(),
     };
+    // Canal 1 (mismo origen): storage. localStorage se comparte al instante entre pestañas del
+    // mismo origen; sessionStorage es el contrato del ecosistema. Escriba lee cualquiera.
     try {
-      sessionStorage.setItem("escriba.handoff", JSON.stringify(payload));
-      localStorage.setItem("escriba.handoff", JSON.stringify(payload));
+      var s = JSON.stringify(payload);
+      sessionStorage.setItem("escriba.handoff", s);
+      localStorage.setItem("escriba.handoff", s);
     } catch (e) {}
-    var url = localStorage.getItem("anonimal-escriba-url");
-    if (url) window.open(url, "_blank");
+    // Resolver la URL de Escriba (localStorage o meta inyectado por el server). Solo http(s)/relativa:
+    // bloqueo javascript:/data: para que window.open no ejecute código. Ver auditoría 2026-06.
+    var url = localStorage.getItem("anonimal-escriba-url") || "";
+    if (!url) { var m = document.querySelector('meta[name="anonimal-escriba-url"]'); if (m) url = m.content || ""; }
+    if (url) { try { var ab = new URL(url, location.origin); if (ab.protocol !== "http:" && ab.protocol !== "https:") url = ""; } catch (e) { url = ""; } }
+    // Canal 2 (CROSS-ORIGEN): postMessage. El storage NO cruza orígenes distintos (Anonimal y Escriba
+    // en subdominios distintos). Abro Escriba SIN noopener y, cuando avisa "escriba-ready", le mando
+    // el handoff por postMessage al origen exacto. Funciona estén donde estén (mismo patrón que Fulgoria).
+    if (url) {
+      var targetOrigin = "*";
+      try { targetOrigin = new URL(url, location.origin).origin; } catch (e) {}
+      var win = null;
+      var onMsg = function (e) {
+        if (win && e.source === win && e.data && e.data.type === "escriba-ready") {
+          try { win.postMessage({ type: "escriba-handoff", payload: payload }, targetOrigin); } catch (e2) {}
+        }
+      };
+      window.addEventListener("message", onMsg);
+      setTimeout(function () { window.removeEventListener("message", onMsg); }, 120000);
+      win = window.open(url, "_blank");
+    }
     flash($("sendBtn"), "sent");
   }
 

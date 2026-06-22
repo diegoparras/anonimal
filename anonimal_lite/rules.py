@@ -31,7 +31,7 @@ from .lite_engine import PRIORITY
 # servicio Anonimal trae `regex` en requirements para habilitar la feature. Auditoría 2026-06.
 try:
     import re2 as _user_rx  # type: ignore
-    _USER_ENGINE: "str | None" = "re2"
+    _USER_ENGINE: str | None = "re2"
 except ImportError:
     try:
         import regex as _user_rx  # type: ignore

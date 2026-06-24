@@ -44,16 +44,28 @@ TOKEN = os.getenv("ANONIMAL_TOKEN")  # token de SERVICIO (Escriba/Fisherboy por 
 # Login de NAVEGADOR (para exponerlo en la web). Independiente del token de servicio:
 # Escriba sigue llamando con el token; las personas entran con usuario/clave.
 AUTH_ENABLED = os.getenv("ANONIMAL_AUTH_ENABLED", "false").lower() == "true"
+AUTH_MODE = os.getenv("ANONIMAL_AUTH_MODE", "local").lower()  # local | federado (Lockatus SSO)
 AUTH_USER = os.getenv("ANONIMAL_USER", "")
 AUTH_PASSWORD = os.getenv("ANONIMAL_PASSWORD", "")
 SESSION_SECRET = os.getenv("ANONIMAL_SESSION_SECRET", "")
 COOKIE_SECURE = os.getenv("ANONIMAL_COOKIE_SECURE", "true").lower() == "true"
 SESSION_TTL = int(os.getenv("ANONIMAL_SESSION_TTL_HOURS", "12")) * 3600
 COOKIE_NAME = "anonimal_auth"
-if AUTH_ENABLED and not (AUTH_USER and AUTH_PASSWORD and SESSION_SECRET):
+OIDC_COOKIE = "anonimal_oidc"  # cookie de transacción (verifier/state/nonce) en modo federado
+# Federación opcional con Lockatus (el hub de identidad de la suite). Default local → sin cambios.
+LK_ISSUER = os.getenv("LOCKATUS_ISSUER", "").rstrip("/")
+LK_CLIENT = os.getenv("LOCKATUS_CLIENT_ID", "anonimal")
+LK_REDIRECT = os.getenv("LOCKATUS_REDIRECT_URI", "")
+if AUTH_ENABLED and AUTH_MODE == "federado" and not (SESSION_SECRET and LK_ISSUER and LK_REDIRECT):
+    raise RuntimeError("ANONIMAL_AUTH_MODE=federado requiere ANONIMAL_SESSION_SECRET, LOCKATUS_ISSUER y LOCKATUS_REDIRECT_URI.")
+if AUTH_ENABLED and AUTH_MODE != "federado" and not (AUTH_USER and AUTH_PASSWORD and SESSION_SECRET):
     raise RuntimeError(
         "ANONIMAL_AUTH_ENABLED=true requiere ANONIMAL_USER, ANONIMAL_PASSWORD y ANONIMAL_SESSION_SECRET."
     )
+_lk = None
+if AUTH_ENABLED and AUTH_MODE == "federado":
+    from .lockatus_client import Lockatus
+    _lk = Lockatus(LK_ISSUER, LK_CLIENT, LK_REDIRECT, SESSION_SECRET)
 _login_fails: dict[str, dict] = {}   # rate-limit de login por IP (en memoria)
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -401,8 +413,39 @@ def _login_page(err: str = "") -> str:
 def login_get(request: Request, e: str = ""):
     if not AUTH_ENABLED or _cookie_valid(request.cookies.get(COOKIE_NAME)):
         return RedirectResponse("/", status_code=302)
+    if AUTH_MODE == "federado":
+        verifier, challenge = _lk.pkce()
+        state, nonce = _lk.random_id(), _lk.random_id()
+        tx = _lk.sign({"verifier": verifier, "state": state, "nonce": nonce, "exp": (time.time() + 600) * 1000})
+        resp = RedirectResponse(_lk.authorize_url(state, nonce, challenge), status_code=302)
+        resp.set_cookie(OIDC_COOKIE, tx, httponly=True, secure=COOKIE_SECURE, samesite="lax", max_age=600)
+        return resp
     errs = {"1": "Usuario o contraseña incorrectos.", "2": "Demasiados intentos. Esperá un minuto."}
     return HTMLResponse(_login_page(errs.get(e, "")))
+
+
+# Vuelta de Lockatus (modo federado): canjea el código, verifica los tokens y siembra la MISMA
+# cookie de sesión que el login propio → el resto del gate de Anonimal no cambia.
+@app.get("/callback", include_in_schema=False)
+def lk_callback(request: Request):
+    if not AUTH_ENABLED or AUTH_MODE != "federado":
+        return RedirectResponse("/", status_code=302)
+    if request.query_params.get("error"):
+        return HTMLResponse(f"Acceso denegado por Lockatus: {request.query_params['error']}", status_code=403)
+    tx = _lk.unsign(request.cookies.get(OIDC_COOKIE, ""))
+    code, state = request.query_params.get("code"), request.query_params.get("state")
+    if not tx or not code or state != tx["state"]:
+        return RedirectResponse("/login", status_code=302)
+    try:
+        tok = _lk.exchange(code, tx["verifier"])
+        _lk.verify_jwt(tok["id_token"], audience=LK_CLIENT, nonce=tx["nonce"])
+        _lk.verify_jwt(tok["access_token"], audience=LK_CLIENT)
+    except Exception:
+        return RedirectResponse("/login?e=1", status_code=302)
+    resp = RedirectResponse("/", status_code=302)
+    resp.delete_cookie(OIDC_COOKIE)
+    resp.set_cookie(COOKIE_NAME, _make_cookie(), httponly=True, secure=COOKIE_SECURE, samesite="lax", max_age=SESSION_TTL)
+    return resp
 
 
 @app.post("/login", include_in_schema=False)

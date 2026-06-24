@@ -7,3 +7,6 @@ pydantic>=2.0,<3.0
 python-multipart>=0.0.9
 pymupdf>=1.24,<2.0       # redaccion visual de PDF (tachado real + scrub de metadata)
 regex>=2024.0           # motor con timeout para los patrones REGEX del usuario (anti-ReDoS)
+# Solo si ANONIMAL_AUTH_MODE=federado (SSO con Lockatus): verifica los JWT RS256 del hub.
+# El modo local NO lo necesita (import lazy). Descomentá si federás:
+# cryptography>=42

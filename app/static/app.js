@@ -247,6 +247,45 @@
     $("panelReid").classList.toggle("hidden", anon);
   }
 
+  // ---- Resaltado de sintaxis JSON en un <textarea> (overlay, sin dependencias) ----
+  function _jhlEsc(x) { return x.replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+  function jsonHL(s) {
+    return _jhlEsc(s).replace(
+      /("(?:\\.|[^"\\])*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false)\b|\b(null)\b/g,
+      function (m, str, colon, num, bool, nul) {
+        if (str !== undefined) return colon ? '<span class="jk">' + str + '</span>' + colon : '<span class="js">' + str + '</span>';
+        if (num !== undefined) return '<span class="jn">' + num + '</span>';
+        if (bool !== undefined) return '<span class="jb">' + bool + '</span>';
+        if (nul !== undefined) return '<span class="ju">' + nul + '</span>';
+        return m;
+      });
+  }
+  function jsonHi(ta) {
+    if (!ta || ta.dataset.jhl) return; ta.dataset.jhl = "1";
+    var cs = getComputedStyle(ta);
+    var wrap = document.createElement("div");
+    wrap.style.position = "relative";
+    wrap.style.display = cs.display === "inline" ? "inline-block" : cs.display;
+    ta.parentNode.insertBefore(wrap, ta); wrap.appendChild(ta);
+    var pre = document.createElement("pre");
+    pre.className = "jhl"; pre.setAttribute("aria-hidden", "true");
+    ["fontFamily", "fontSize", "fontWeight", "fontStyle", "lineHeight", "letterSpacing", "whiteSpace",
+      "wordBreak", "tabSize", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
+      "borderTopWidth", "borderRightWidth", "borderBottomWidth", "borderLeftWidth", "borderStyle", "boxSizing"
+    ].forEach(function (p) { pre.style[p] = cs[p]; });
+    pre.style.position = "absolute"; pre.style.inset = "0"; pre.style.margin = "0";
+    pre.style.borderColor = "transparent"; pre.style.overflow = "hidden"; pre.style.pointerEvents = "none";
+    pre.style.whiteSpace = "pre-wrap"; pre.style.overflowWrap = "break-word"; pre.style.background = "transparent"; pre.style.color = cs.color;
+    wrap.insertBefore(pre, ta);
+    ta.style.position = "relative"; ta.style.background = "transparent"; ta.style.color = "transparent";
+    ta.style.webkitTextFillColor = "transparent"; ta.style.caretColor = cs.color;
+    function upd() { pre.innerHTML = jsonHL(ta.value) + "\n"; }
+    function sync() { pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; }
+    ta.addEventListener("input", function () { upd(); sync(); });
+    ta.addEventListener("scroll", sync);
+    upd();
+  }
+
   function init() {
     $("lang").value = lang;
     applyI18n();
@@ -281,9 +320,10 @@
     $("reidMapFile").addEventListener("change", function (e) {
       var f = e.target.files[0]; if (!f) return;
       var rd = new FileReader();
-      rd.onload = function () { $("reidMap").value = rd.result; };
+      rd.onload = function () { $("reidMap").value = rd.result; $("reidMap").dispatchEvent(new Event("input")); };
       rd.readAsText(f);
     });
+    jsonHi($("reidMap"));   // resaltado de sintaxis en el mapa JSON de re-identificación
 
     // estado del motor por defecto
     fetch("/health").then(function (r) { return r.json(); }).then(function (h) {

@@ -15,11 +15,16 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
  && rm -rf /var/lib/apt/lists/*
 
+# WITH_CRYPTO=1 suma `cryptography` (necesaria SOLO si ANONIMAL_AUTH_MODE=federado, para
+# verificar los JWT RS256 del hub). Default 0 = imagen lite pura (modo local, sin la dep).
+ARG WITH_CRYPTO=0
+
 COPY requirements.txt .
 # Actualizar la toolchain de empaquetado (pip/setuptools/wheel) baja CVEs HIGH
 # que arrastra el base image en herramientas de build.
 RUN pip install --upgrade pip setuptools wheel \
- && pip install -r requirements.txt
+ && pip install -r requirements.txt \
+ && if [ "$WITH_CRYPTO" = "1" ]; then pip install "cryptography>=42"; fi
 
 RUN useradd -m -u 10001 anon
 USER anon

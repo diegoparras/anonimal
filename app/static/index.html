@@ -6,28 +6,54 @@
 <title>Anonimal · Anonimiza antes de enviar</title>
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml" />
 <meta name="theme-color" content="#f7f7fb" />
+<!-- Versión de la app. Idealmente el server reemplaza el valor (como Selega con
+     __SELEGA_VERSION__); como /index.html se sirve estático y /health no expone
+     versión, queda fija desde el FastAPI app (main.py: version="0.1.0"). -->
+<meta name="anonimal-version" content="0.1.0" />
 <script src="/static/theme-init.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource-variable/inter/index.css" />
+<link rel="stylesheet" href="/static/escriba-ui.css" />
 <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
 <div class="wrap">
 
   <div class="topbar">
-    <span class="logo"><img src="/static/logo.svg" alt="" /> Anonimal</span>
+    <a class="logo logo-link" href="/" aria-label="Anonimal"><img class="brand" src="/static/logo.svg" alt="" /> Anonimal</a>
     <span class="spacer"></span>
-    <span class="badge" id="engineBadge" title="Motor en uso">lite</span>
-    <select class="mini" id="lang" aria-label="Idioma">
-      <option value="es">ES</option>
-      <option value="en">EN</option>
-      <option value="fr">FR</option>
-      <option value="pt">PT</option>
-      <option value="it">IT</option>
-      <option value="zh">中文</option>
-      <option value="ja">日本語</option>
-    </select>
-    <button class="icon-btn" id="themeBtn" aria-label="Tema" title="Tema">◐</button>
-    <a class="icon-btn" id="logoutBtn" href="/logout" aria-label="Salir" title="Salir" style="display:inline-grid;place-items:center;text-decoration:none"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></a>
+    <div class="menu-wrap" id="menuWrap">
+      <button class="icon-btn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-label="Menú" title="Menú">
+        <svg viewBox="0 0 20 20" width="17" height="17" fill="currentColor" aria-hidden="true"><circle cx="10" cy="4" r="1.7"/><circle cx="10" cy="10" r="1.7"/><circle cx="10" cy="16" r="1.7"/></svg>
+      </button>
+      <div class="menu menu-right hidden" id="menu">
+        <div class="menu-engine"><span data-i18n="engineLabel">Motor</span><span class="badge" id="engineBadge" title="Motor en uso">lite</span></div>
+        <div class="menu-field">
+          <span class="menu-field-lbl" data-i18n="langLabel">Idioma</span>
+          <select id="lang" aria-label="Idioma">
+            <option value="es">Español</option>
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="pt">Português</option>
+            <option value="it">Italiano</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+          </select>
+        </div>
+        <div class="menu-sep"></div>
+        <button class="menu-item" id="themeBtn">
+          <svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><circle cx="10" cy="10" r="6.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 3.6a6.4 6.4 0 000 12.8z" fill="currentColor"/></svg>
+          <span data-i18n="themeLabel">Tema claro / oscuro</span>
+        </button>
+        <button class="menu-item" id="aboutBtn">
+          <svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9.2v4.3"/><circle cx="10" cy="6.4" r=".7" fill="currentColor" stroke="none"/></svg>
+          <span data-i18n="aboutTitle">Acerca de Anonimal</span>
+        </button>
+        <div class="menu-sep"></div>
+        <a class="menu-item" id="logoutBtn" href="/logout">
+          <svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6V4.5A1.5 1.5 0 019.5 3h5A1.5 1.5 0 0116 4.5v11a1.5 1.5 0 01-1.5 1.5h-5A1.5 1.5 0 018 15.5V14"/><path d="M11 10H3.5M6 7l-3 3 3 3"/></svg>
+          <span data-i18n="logout">Cerrar sesión</span>
+        </a>
+      </div>
+    </div>
   </div>
 
   <header class="hero">
@@ -150,6 +176,24 @@
     <span data-i18n="footerNote">El dato nunca sale del navegador en el handoff a Escriba.</span>
   </footer>
 
+</div>
+
+<!-- Modal canónico "Acerca de Anonimal" — versión real + créditos. -->
+<div class="modal-back hidden" id="aboutModal">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle">
+    <button class="modal-x" id="aboutModalClose" type="button" aria-label="Cerrar">&times;</button>
+    <h3 class="modal-tit" id="aboutModalTitle" data-i18n="aboutTitle">Acerca de Anonimal</h3>
+    <div class="modal-cuerpo">
+      <p data-i18n="aboutTagline">Anonimiza tus datos personales antes de enviarlos. El dato nunca sale de tu máquina.</p>
+      <dl class="about-rows">
+        <dt data-i18n="aboutVersion">Versión</dt><dd id="aboutVersion">—</dd>
+        <dt data-i18n="aboutRole">Rol en la suite</dt><dd data-i18n="aboutRoleVal">Privacidad PII · satélite de Escriba</dd>
+        <dt data-i18n="aboutLinks">Enlaces</dt>
+        <dd><a class="link" href="https://github.com/diegoparras/anonimal" target="_blank" rel="noopener noreferrer">GitHub</a></dd>
+      </dl>
+      <p class="about-foot">Diego Parras · Ecosistema Escriba</p>
+    </div>
+  </div>
 </div>
 
 <!-- Modal de privacidad (solo instancia hosteada; lo abre el asterisco del subtítulo). -->

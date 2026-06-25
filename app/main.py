@@ -409,11 +409,44 @@ def _login_page(err: str = "") -> str:
     )
 
 
+def _logged_out_page() -> str:
+    # Pantalla "sesión cerrada" del modo federado: mismo card, con botón al SSO (sin auto-rebote).
+    return (
+        '<!doctype html><html lang="es"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        "<title>Anonimal — Sesión cerrada</title>"
+        f'<link rel="icon" href="{_FAVI}"><style>'
+        ":root{--bg:#f5f6fa;--card:#fff;--ink:#1a1c2b;--muted:#6b7080;--line:rgba(20,22,40,.12);--accent:#4a4e7c}"
+        "@media(prefers-color-scheme:dark){:root{--bg:#0c0d14;--card:#14161f;--ink:#e9eaf2;--muted:#9498ad;--line:rgba(255,255,255,.12);--accent:#8a8fd0}}"
+        "*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--bg);"
+        "color:var(--ink);font:15px/1.5 'Inter',system-ui,-apple-system,'Segoe UI',sans-serif}"
+        ".card{width:min(380px,92vw);background:var(--card);border:1px solid var(--line);border-radius:18px;"
+        "padding:34px 30px;box-shadow:0 30px 80px -30px rgba(0,0,0,.4);text-align:center}"
+        ".logo{display:flex;align-items:center;justify-content:center;gap:10px;font-weight:700;font-size:21px;letter-spacing:-.02em}"
+        ".logo svg{width:30px;height:30px}.sub{color:var(--muted);font-size:13px;margin:6px 0 22px}"
+        "a.btn{display:inline-block;text-decoration:none;font:inherit;font-weight:600;padding:11px 18px;border-radius:10px;background:var(--accent);color:#fff}"
+        "</style></head><body><div class=\"card\">"
+        '<div class="logo"><svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">'
+        '<rect width="64" height="64" rx="15" fill="#4a4e7c"/>'
+        '<path d="M12 26 C12 22 16 21 20 21 L44 21 C48 21 52 22 52 26 C52 32 50 40 42 40 C36 40 34 35 32 35 C30 35 28 40 22 40 C14 40 12 32 12 26 Z" fill="#fff"/>'
+        '<ellipse cx="23" cy="29" rx="4" ry="3.1" fill="#4a4e7c" transform="rotate(-12 23 29)"/>'
+        '<ellipse cx="41" cy="29" rx="4" ry="3.1" fill="#4a4e7c" transform="rotate(12 41 29)"/>'
+        "</svg>Anonimal</div>"
+        '<p class="sub">Cerraste la sesión.</p>'
+        '<a class="btn" href="/login">Entrar con Lockatus</a>'
+        "</div></body></html>"
+    )
+
+
 @app.get("/login", include_in_schema=False)
-def login_get(request: Request, e: str = ""):
+def login_get(request: Request, e: str = "", out: str = ""):
     if not AUTH_ENABLED or _cookie_valid(request.cookies.get(COOKIE_NAME)):
         return RedirectResponse("/", status_code=302)
     if AUTH_MODE == "federado":
+        # Tras "Salir" (out=1) NO rebotamos al SSO: el hub sigue con sesión y reentraría solo.
+        # Mostramos una pantalla "sesión cerrada" con botón para volver a entrar a propósito.
+        if out:
+            return HTMLResponse(_logged_out_page())
         verifier, challenge = _lk.pkce()
         state, nonce = _lk.random_id(), _lk.random_id()
         tx = _lk.sign({"verifier": verifier, "state": state, "nonce": nonce, "exp": (time.time() + 600) * 1000})
@@ -469,8 +502,11 @@ def login_post(request: Request, user: str = Form(""), password: str = Form(""))
 
 @app.get("/logout", include_in_schema=False)
 def logout():
-    resp = RedirectResponse("/login", status_code=302)
+    # En federado salimos a la pantalla "sesión cerrada" (out=1) para no re-loguear solo.
+    target = "/login?out=1" if AUTH_MODE == "federado" else "/login"
+    resp = RedirectResponse(target, status_code=302)
     resp.delete_cookie(COOKIE_NAME)
+    resp.delete_cookie(OIDC_COOKIE)
     return resp
 
 

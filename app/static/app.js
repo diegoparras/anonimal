@@ -290,11 +290,39 @@
     $("lang").value = lang;
     applyI18n();
 
+    // Menú kebab del topbar (todo el chrome vive acá). Click afuera o Escape lo cierra.
+    var menu = $("menu"), menuBtn = $("menuBtn");
+    var closeMenu = function () { menu.classList.add("hidden"); menuBtn.setAttribute("aria-expanded", "false"); };
+    menuBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var open = menu.classList.toggle("hidden") === false;
+      menuBtn.setAttribute("aria-expanded", String(open));
+    });
+    menu.addEventListener("click", function (e) {
+      // Cerrar al elegir un ítem de acción (no al tocar el select de idioma o el badge).
+      if (e.target.closest(".menu-item")) closeMenu();
+    });
+    document.addEventListener("click", function (e) {
+      if (!menu.classList.contains("hidden") && !menu.contains(e.target) && !menuBtn.contains(e.target)) closeMenu();
+    });
+
     $("themeBtn").addEventListener("click", function () {
       var dark = document.documentElement.getAttribute("data-theme") === "dark";
       document.documentElement.setAttribute("data-theme", dark ? "light" : "dark");
       localStorage.setItem("anonimal-theme", dark ? "light" : "dark");
     });
+
+    // "Acerca de Anonimal" → modal canónico con la versión real (leída del <meta>).
+    var about = $("aboutModal");
+    var openAbout = function () {
+      var v = (document.querySelector('meta[name="anonimal-version"]') || {}).content || "";
+      $("aboutVersion").textContent = /^\d/.test(v) ? "v" + v : "—";
+      about.classList.remove("hidden");
+    };
+    var closeAbout = function () { about.classList.add("hidden"); };
+    $("aboutBtn").addEventListener("click", openAbout);
+    $("aboutModalClose").addEventListener("click", closeAbout);
+    about.addEventListener("click", function (e) { if (e.target === about) closeAbout(); });
     $("lang").addEventListener("change", function () {
       lang = $("lang").value; localStorage.setItem("anonimal-lang", lang); applyI18n();
     });
@@ -338,7 +366,12 @@
     if ($("hostedStar")) $("hostedStar").addEventListener("click", openHm);
     if ($("hostedModalClose")) $("hostedModalClose").addEventListener("click", closeHm);
     if (hm) hm.addEventListener("click", function (e) { if (e.target === hm) closeHm(); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && hm && !hm.hidden) closeHm(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      if (hm && !hm.hidden) closeHm();
+      if (!about.classList.contains("hidden")) closeAbout();
+      closeMenu();
+    });
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);

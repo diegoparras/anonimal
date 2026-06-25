@@ -511,8 +511,9 @@ def logout():
     # En federado salimos a la pantalla "sesión cerrada" (out=1) para no re-loguear solo.
     target = "/login?out=1" if AUTH_MODE == "federado" else "/login"
     resp = RedirectResponse(target, status_code=302)
-    resp.delete_cookie(COOKIE_NAME)
-    resp.delete_cookie(OIDC_COOKIE)
+    # delete_cookie debe repetir path/secure/samesite del set, si no algunos navegadores no la borran.
+    resp.delete_cookie(COOKIE_NAME, path="/", secure=COOKIE_SECURE, httponly=True, samesite="lax")
+    resp.delete_cookie(OIDC_COOKIE, path="/", secure=COOKIE_SECURE, httponly=True, samesite="lax")
     return resp
 
 

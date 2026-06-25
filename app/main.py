@@ -447,10 +447,13 @@ def login_get(request: Request, e: str = "", out: str = ""):
         # Mostramos una pantalla "sesión cerrada" con botón para volver a entrar a propósito.
         if out:
             return HTMLResponse(_logged_out_page())
-        verifier, challenge = _lk.pkce()
-        state, nonce = _lk.random_id(), _lk.random_id()
-        tx = _lk.sign({"verifier": verifier, "state": state, "nonce": nonce, "exp": (time.time() + 600) * 1000})
-        resp = RedirectResponse(_lk.authorize_url(state, nonce, challenge), status_code=302)
+        lk = _lk
+        if lk is None:  # en federado siempre está; el guard satisface el tipo y es fail-safe
+            return HTMLResponse(_login_page("Federación mal configurada."), status_code=500)
+        verifier, challenge = lk.pkce()
+        state, nonce = lk.random_id(), lk.random_id()
+        tx = lk.sign({"verifier": verifier, "state": state, "nonce": nonce, "exp": (time.time() + 600) * 1000})
+        resp = RedirectResponse(lk.authorize_url(state, nonce, challenge), status_code=302)
         resp.set_cookie(OIDC_COOKIE, tx, httponly=True, secure=COOKIE_SECURE, samesite="lax", max_age=600)
         return resp
     errs = {"1": "Usuario o contraseña incorrectos.", "2": "Demasiados intentos. Esperá un minuto."}
@@ -463,16 +466,19 @@ def login_get(request: Request, e: str = "", out: str = ""):
 def lk_callback(request: Request):
     if not AUTH_ENABLED or AUTH_MODE != "federado":
         return RedirectResponse("/", status_code=302)
+    lk = _lk
+    if lk is None:  # en federado siempre está; el guard satisface el tipo y es fail-safe
+        return RedirectResponse("/", status_code=302)
     if request.query_params.get("error"):
         return HTMLResponse(f"Acceso denegado por Lockatus: {request.query_params['error']}", status_code=403)
-    tx = _lk.unsign(request.cookies.get(OIDC_COOKIE, ""))
+    tx = lk.unsign(request.cookies.get(OIDC_COOKIE, ""))
     code, state = request.query_params.get("code"), request.query_params.get("state")
     if not tx or not code or state != tx["state"]:
         return RedirectResponse("/login", status_code=302)
     try:
-        tok = _lk.exchange(code, tx["verifier"])
-        _lk.verify_jwt(tok["id_token"], audience=LK_CLIENT, nonce=tx["nonce"])
-        _lk.verify_jwt(tok["access_token"], audience=LK_CLIENT)
+        tok = lk.exchange(code, tx["verifier"])
+        lk.verify_jwt(tok["id_token"], audience=LK_CLIENT, nonce=tx["nonce"])
+        lk.verify_jwt(tok["access_token"], audience=LK_CLIENT)
     except Exception:
         return RedirectResponse("/login?e=1", status_code=302)
     resp = RedirectResponse("/", status_code=302)

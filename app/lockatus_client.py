@@ -17,14 +17,16 @@ _b64e = lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode()
 
 
 def _get_json(url: str):
-    with urllib.request.urlopen(url, timeout=10) as r:  # noqa: S310 (URL del issuer, de confianza)
+    # B310: la URL es el issuer de Lockatus (configuración de confianza), no input del usuario.
+    with urllib.request.urlopen(url, timeout=10) as r:  # nosec B310
         return json.loads(r.read())
 
 
 def _post_form(url: str, data: dict):
     body = urllib.parse.urlencode(data).encode()
     req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/x-www-form-urlencoded"})
-    with urllib.request.urlopen(req, timeout=10) as r:  # noqa: S310
+    # B310: la URL es el token endpoint de Lockatus (configuración de confianza), no input del usuario.
+    with urllib.request.urlopen(req, timeout=10) as r:  # nosec B310
         return json.loads(r.read())
 
 

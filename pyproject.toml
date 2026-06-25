@@ -67,7 +67,9 @@ ignore_missing_imports = true
 [tool.coverage.run]
 source = ["app", "anonimal_lite"]
 # El wrapper ML solo se ejercita con el modelo cargado (no en CI/local sin OPF).
-omit = ["app/opf_engine.py"]
+# El cliente OIDC de federación necesita un hub Lockatus vivo: se prueba por integración
+# (lockatus/test/anonimal-fed-check.mjs), no por unit tests en este repo.
+omit = ["app/opf_engine.py", "app/lockatus_client.py"]
 
 [tool.coverage.report]
 show_missing = true

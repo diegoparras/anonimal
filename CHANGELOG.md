@@ -2,6 +2,16 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
+## [0.5.4] - 2026-11-20
+
+### Seguridad
+- Las imagenes full y lite aplican los parches de seguridad de Debian al construirse
+  (`apt-get upgrade`). Cierra CVE-2026-85091 en `zlib1g` (HIGH), que frenaba la publicacion
+  de la 0.5.3 en el control de Trivy.
+
+### Nota
+- La 0.5.3 no llego a publicarse: esta version incluye todo lo de la 0.5.3 (abajo).
+
 ## [0.5.3] - 2026-11-20
 
 ### Nuevo

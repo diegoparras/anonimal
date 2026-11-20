@@ -12,7 +12,8 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl \
+# upgrade: parches de seguridad de Debian sobre la base (p. ej. zlib1g, CVE-2026-85091).
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends curl \
  && rm -rf /var/lib/apt/lists/*
 
 # WITH_CRYPTO=1 suma `cryptography` (necesaria SOLO si ANONIMAL_AUTH_MODE=federado, para

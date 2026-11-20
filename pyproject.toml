@@ -9,7 +9,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "anonimal-lite"
-version = "0.5.3"   # version del repo (servicio + libreria); cada una tiene su seccion en CHANGELOG.md
+version = "0.5.4"   # version del repo (servicio + libreria); cada una tiene su seccion en CHANGELOG.md
 description = "Motor de anonimización de PII liviano (regex + LATAM, stdlib puro): fallback standalone del ecosistema Anonimal."
 requires-python = ">=3.11"
 dependencies = []                      # stdlib puro: cero dependencias

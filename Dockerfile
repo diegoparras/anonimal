@@ -20,7 +20,8 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 # git: para instalar OPF desde su repo.  curl: para el HEALTHCHECK.
-RUN apt-get update && apt-get install -y --no-install-recommends git curl \
+# upgrade: parches de seguridad de Debian sobre la base (p. ej. zlib1g, CVE-2026-85091).
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends git curl \
  && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

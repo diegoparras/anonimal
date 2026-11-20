@@ -2,6 +2,26 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 
+## [0.5.3] - 2026-11-20
+
+### Nuevo
+- Cada deploy dice su version y que cambia: es lo primero que escribe el contenedor
+  en los registros de EasyPanel (servicio > Resumen > Registros), en la imagen full y
+  en la lite.
+- Aviso **Novedades** en la web: aparece una sola vez al entrar despues de una
+  actualizacion. Tambien se abre desde el menu (Novedades) y desde "Acerca de" (Que cambio).
+  Las notas salen de este CHANGELOG (`GET /novedades`, misma autenticacion que la API).
+- Cada version publicada queda como Release en GitHub con estas mismas notas.
+
+### Corregido
+- "Acerca de" mostraba siempre la v0.1.0: ahora muestra la version real, la de
+  `pyproject.toml` (la misma del tag, de la imagen y del Release).
+
+### Cambiado
+- CI: acciones de GitHub actualizadas a sus versiones que corren sobre Node 24 (checkout v7,
+  setup-python v7, login v4). La publicacion no sale si la version no tiene su seccion en
+  el CHANGELOG o si el tag no coincide con `pyproject.toml`.
+
 ## [0.5.1] — Menos RAM (imagen full)
 
 - **Tweaks de memoria** en la imagen full: `MALLOC_ARENA_MAX=2` (la fragmentación de

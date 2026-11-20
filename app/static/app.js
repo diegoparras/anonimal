@@ -323,6 +323,63 @@
     $("aboutBtn").addEventListener("click", openAbout);
     $("aboutModalClose").addEventListener("click", closeAbout);
     about.addEventListener("click", function (e) { if (e.target === about) closeAbout(); });
+
+    // Novedades: que cambio en cada version (sale del CHANGELOG del server, GET /novedades).
+    // Aparece sola UNA vez por navegador despues de una actualizacion (se recuerda la ultima
+    // version vista); tambien se abre desde el menu y desde "Acerca de".
+    var NOV_STORE = "anonimal.versionVista";
+    var nov = $("novModal");
+    var novMd = function (x) {
+      // Escapar SIEMPRE antes de convertir el poco markdown que usan las notas (**x** y `x`).
+      return String(x).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/`([^`]+)`/g, "<code>$1</code>");
+    };
+    var novHtml = function (versiones) {
+      return versiones.map(function (v) {
+        return '<div class="nov-ver"><b>v' + novMd(v.version) + "</b>" + (v.fecha ? "<span>" + novMd(v.fecha) + "</span>" : "") + "</div>" +
+          v.secciones.map(function (sec) {
+            return (sec.titulo ? '<div class="nov-sec">' + novMd(sec.titulo) + "</div>" : "") +
+              '<ul class="nov-list">' + sec.items.map(function (i) { return "<li>" + novMd(i) + "</li>"; }).join("") + "</ul>";
+          }).join("");
+      }).join("");
+    };
+    var conVersion = function (key, version) {
+      return novMd(t(key)).replace("{v}", "<b>v" + novMd(version) + "</b>");
+    };
+    var verNovedades = function (r, bajada) {
+      $("novBajada").innerHTML = bajada;
+      $("novLista").innerHTML = r.versiones.length ? novHtml(r.versiones) : "<p>" + novMd(t("novEmpty")) + "</p>";
+      nov.classList.remove("hidden");
+      $("novOk").focus({ preventScroll: true });
+    };
+    var closeNov = function () { nov.classList.add("hidden"); };
+    var algunModalAbierto = function () {
+      return !about.classList.contains("hidden") || !nov.classList.contains("hidden") ||
+        !!($("hostedModal") && !$("hostedModal").hidden);
+    };
+    var avisarNovedades = function () {
+      var vista = null; try { vista = localStorage.getItem(NOV_STORE); } catch (e) { /* sin storage */ }
+      fetch("/novedades" + (vista ? "?desde=" + encodeURIComponent(vista) : ""))
+        .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function (r) {
+          if (!/^\d+\.\d+\.\d+$/.test(r.version || "") || vista === r.version) return;
+          if (algunModalAbierto()) return;   // no tapamos otro modal: se muestra la proxima vez
+          try { localStorage.setItem(NOV_STORE, r.version); } catch (e) { /* sin storage */ }
+          if (r.versiones.length) verNovedades(r, conVersion("novUpdated", r.version));
+        }).catch(function () {});
+    };
+    var novedadesTodas = function () {
+      fetch("/novedades?todas=1")
+        .then(function (r) { if (!r.ok) throw new Error(); return r.json(); })
+        .then(function (r) { verNovedades(r, conVersion("novInstalled", r.version)); })
+        .catch(function () { $("novBajada").textContent = t("errGeneric"); $("novLista").innerHTML = ""; nov.classList.remove("hidden"); });
+    };
+    $("novedadesBtn").addEventListener("click", novedadesTodas);
+    $("aboutNovBtn").addEventListener("click", function () { closeAbout(); novedadesTodas(); });
+    $("novModalClose").addEventListener("click", closeNov);
+    $("novOk").addEventListener("click", closeNov);
+    nov.addEventListener("click", function (e) { if (e.target === nov) closeNov(); });
+    setTimeout(avisarNovedades, 400);
     $("lang").addEventListener("change", function () {
       lang = $("lang").value; localStorage.setItem("anonimal-lang", lang); applyI18n();
     });
@@ -370,6 +427,7 @@
       if (e.key !== "Escape") return;
       if (hm && !hm.hidden) closeHm();
       if (!about.classList.contains("hidden")) closeAbout();
+      if (!nov.classList.contains("hidden")) closeNov();
       closeMenu();
     });
   }

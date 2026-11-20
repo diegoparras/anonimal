@@ -2,6 +2,9 @@ name: release
 
 # Publica las imagenes a GHCR cuando Diego corta un tag v* (versionado-conservador).
 # workflow_dispatch permite una corrida manual (empuja solo las etiquetas flotantes).
+# Cada version dice que cambia: el tag tiene que coincidir con pyproject.toml y la version
+# tiene que tener su seccion en CHANGELOG.md, si no no se publica nada. Con el tag, ademas,
+# se crea el Release vX.Y.Z con esas notas.
 on:
   push:
     tags: ["v*"]
@@ -14,19 +17,47 @@ env:
   IMAGE: ghcr.io/diegoparras/anonimal-svc
 
 jobs:
+  notas:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Version y novedades (pyproject.toml + CHANGELOG)
+        id: ver
+        run: |
+          V="$(python3 -m app.novedades --version)"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]] && [ "${GITHUB_REF_NAME#v}" != "$V" ]; then
+            echo "::error::El tag $GITHUB_REF_NAME no coincide con la version de pyproject.toml ($V)."
+            exit 1
+          fi
+          python3 -m app.novedades notas > "$RUNNER_TEMP/notas.md"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Anonimal v$V"
+            echo
+            cat "$RUNNER_TEMP/notas.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   lite:
+    needs: notas
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    env:
+      V: ${{ needs.notas.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
       - name: Login GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -42,13 +73,14 @@ jobs:
           fi
 
       - name: Build imagen lite
-        run: docker build -f Dockerfile.lite -t "$IMAGE:lite" .
+        run: docker build -f Dockerfile.lite --label "org.opencontainers.image.version=$V" -t "$IMAGE:lite" .
 
       - name: Smoke del contenedor
         run: |
           docker run -d --name anonimal_smoke -p 8920:8000 "$IMAGE:lite"
           pip install httpx
           SMOKE_URL=http://127.0.0.1:8920 python scripts/smoke.py
+          docker logs anonimal_smoke 2>&1 | sed -n 2p | grep -q "^\[anonimal\] ANONIMAL v$V"
           docker rm -f anonimal_smoke
 
       - name: Trivy (gate antes de publicar)
@@ -69,12 +101,15 @@ jobs:
           fi
 
   full:
+    needs: notas
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    env:
+      V: ${{ needs.notas.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Liberar espacio en disco (la imagen full es pesada)
         run: |
@@ -82,7 +117,7 @@ jobs:
           df -h
 
       - name: Login GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -98,7 +133,7 @@ jobs:
           fi
 
       - name: Build imagen full (ML)
-        run: docker build -t "$IMAGE:latest" .
+        run: docker build --label "org.opencontainers.image.version=$V" -t "$IMAGE:latest" .
 
       - name: Trivy (gate antes de publicar)
         uses: aquasecurity/trivy-action@master
@@ -115,4 +150,26 @@ jobs:
           if [ -n "${{ steps.v.outputs.ver }}" ]; then
             docker tag "$IMAGE:latest" "$IMAGE:${{ steps.v.outputs.ver }}"
             docker push "$IMAGE:${{ steps.v.outputs.ver }}"
+          fi
+
+  release:
+    # Solo con tag: el Release vX.Y.Z con las notas de esa version del CHANGELOG.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [notas, lite, full]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Release de la version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          V: ${{ needs.notas.outputs.version }}
+        run: |
+          python3 -m app.novedades notas > "$RUNNER_TEMP/notas.md"
+          if gh release view "v$V" >/dev/null 2>&1; then
+            echo "::warning::La v$V ya tenia Release: este tag no subio la version (patch) ni sumo novedades."
+          else
+            gh release create "v$V" --verify-tag --title "Anonimal v$V" --notes-file "$RUNNER_TEMP/notas.md"
           fi

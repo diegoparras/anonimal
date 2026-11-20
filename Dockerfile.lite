@@ -31,10 +31,13 @@ USER anon
 
 COPY anonimal_lite/ ./anonimal_lite/
 COPY app/ ./app/
+# Versión (pyproject.toml) y novedades (CHANGELOG): el cartel de arranque y la UI las leen de acá.
+COPY pyproject.toml CHANGELOG.md ./
 
 EXPOSE 8000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD curl -fsS http://localhost:8000/health || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Lo PRIMERO que se ve en los registros (EasyPanel): versión y qué cambia. Nunca frena el arranque.
+CMD ["sh", "-c", "python -m app.novedades; exec uvicorn app.main:app --host 0.0.0.0 --port 8000"]

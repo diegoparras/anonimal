@@ -17,11 +17,11 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import time
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.requests import Request
@@ -34,6 +34,10 @@ from anonimal_lite.modes import MODES, Anonymizer, deanonymize
 from anonimal_lite.rules import RuledEngine
 
 from .engines import get_engine, lite_engine
+from .novedades import comparar as _nov_comparar
+from .novedades import desde as _nov_desde
+from .novedades import todas as _nov_todas
+from .novedades import version_instalada
 
 MODE_DEFAULT = os.getenv("ANONIMAL_MODE", "pseudo")
 ENGINE_DEFAULT = os.getenv("ANONIMAL_ENGINE", "auto")   # auto | lite | ml
@@ -69,8 +73,10 @@ if AUTH_ENABLED and AUTH_MODE == "federado":
 _login_fails: dict[str, dict] = {}   # rate-limit de login por IP (en memoria)
 
 STATIC_DIR = Path(__file__).parent / "static"
+# Version real (pyproject.toml, viaja en la imagen); cada version tiene su seccion en el CHANGELOG.
+APP_VERSION = version_instalada() or "dev"
 
-app = FastAPI(title="Anonimal", version="0.1.0",
+app = FastAPI(title="Anonimal", version=APP_VERSION,
               description="Anonimizacion de PII local y self-hosted.")
 
 _CSP = (
@@ -517,9 +523,29 @@ def logout():
     return resp
 
 
+_RE_SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
+
+
+@app.get("/novedades", dependencies=[Depends(require_auth)])
+def novedades(desde: str | None = None, todas: str | None = None):
+    """Que cambio desde la ultima version vista (sale del CHANGELOG). `todas=1`: historial
+    hasta la version instalada. Misma auth que el resto de la API."""
+    vista = desde if desde and _RE_SEMVER.match(desde) else None
+    lista = _nov_todas()
+    if todas == "1":
+        versiones = [x for x in lista if _nov_comparar(x["version"], APP_VERSION) <= 0]
+    else:
+        versiones = _nov_desde(lista, vista, APP_VERSION)
+    return {"version": APP_VERSION, "versiones": versiones[:15]}
+
+
+# index.html con la version real inyectada en el <meta> (se calcula una vez al importar).
+_INDEX_HTML = (STATIC_DIR / "index.html").read_text(encoding="utf-8").replace("__ANONIMAL_VERSION__", APP_VERSION)
+
+
 @app.get("/", include_in_schema=False)
 def index():
-    return FileResponse(STATIC_DIR / "index.html")
+    return HTMLResponse(_INDEX_HTML)
 
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

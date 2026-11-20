@@ -123,3 +123,15 @@ footer a { color: var(--muted-2); }
 .jhl .js { color: #2e9e5b; }
 .jhl .jn { color: #c2792b; }
 .jhl .jb, .jhl .ju { color: #9a5cd0; }
+
+/* Novedades (qué cambió en cada versión; sale del CHANGELOG) */
+.linkbtn { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; font: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.linkbtn:hover { color: var(--accent-2); }
+.nov-card { width: min(600px, 94vw); max-height: 86vh; overflow: auto; }
+.nov-ver { margin: 14px 0 4px; display: flex; align-items: baseline; gap: 10px; color: var(--text); }
+.nov-ver b { font-family: var(--mono); font-size: 14px; }
+.nov-ver span { color: var(--muted); font-size: 12.5px; }
+.nov-sec { margin: 8px 0 2px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.nov-list { margin: 2px 0 6px; padding-left: 18px; font-size: 13.5px; line-height: 1.5; color: var(--text); }
+.nov-list li { margin: 3px 0; }
+.nov-list code { font-family: var(--mono); font-size: 12px; }

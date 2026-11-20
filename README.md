@@ -60,6 +60,7 @@ no es tarea de Anonimal: eso lo hacen Escriba/Extracta/Fisherboy.
 | `POST` | `/anonymize` | `{text, mode, engine?}` → `{output, map, summary}` |
 | `POST` | `/deanonymize` | `{text, map}` → texto original |
 | `POST` | `/anonymize_file` | archivo + `mode` → contenido anonimizado |
+| `GET` | `/novedades` | `?desde=X.Y.Z` o `?todas=1` → qué cambió en cada versión (CHANGELOG) |
 
 ## Correr
 
@@ -80,6 +81,15 @@ Las imágenes se publican solas: al cortar un tag `v*`, el CI
 (`.github/workflows/release.yml`) construye y sube a GHCR la **full**
 (`ghcr.io/diegoparras/anonimal-svc:latest`) y la **lite** (`:lite`), con smoke y
 Trivy como gate previo.
+
+**Versión y novedades.** La versión vive en `pyproject.toml` y cada versión tiene su
+sección en [`CHANGELOG.md`](CHANGELOG.md). Al levantar, lo **primero que escribe el
+contenedor** en sus registros (EasyPanel: servicio > Resumen > Registros) es un cartel con la
+versión, la fecha y qué cambia. En la web, el aviso **Novedades** aparece una sola vez por
+navegador después de una actualización (y se reabre desde el menú o desde "Acerca de"). Para
+publicar: subí el patch en `pyproject.toml`, agregá su sección arriba del CHANGELOG y cortá el
+tag `vX.Y.Z` igual a esa versión; el CI no publica si el tag no coincide o si falta la sección,
+y crea el Release `vX.Y.Z` con las mismas notas.
 
 **Despliegue completo** (Docker · Compose · EasyPanel · detrás de Escriba):
 ver **[docs/DEPLOY.md](docs/DEPLOY.md)**.
